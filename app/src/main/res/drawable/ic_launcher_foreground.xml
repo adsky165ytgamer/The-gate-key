@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Vault Ring -->
+    <path
+        android:fillColor="#334155"
+        android:pathData="M54,26 C38.54,26 26,38.54 26,54 C26,69.46 38.54,82 54,82 C69.46,82 82,69.46 82,54 C82,38.54 69.46,26 54,26 Z M54,76 C41.85,76 32,66.15 32,54 C32,41.85 41.85,32 54,32 C66.15,32 76,41.85 76,54 C76,66.15 66.15,76 54,76 Z" />
+    
+    <!-- Vault Bolts -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M52,24 h4 v4 h-4 z M52,80 h4 v4 h-4 z M24,52 h4 v4 h-4 z M80,52 h4 v4 h-4 z M33,33 h3 v3 h-3 z M72,33 h3 v3 h-3 z M33,72 h3 v3 h-3 z M72,72 h3 v3 h-3 z" />
+
+    <!-- Center Security Shield -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M54,36 L68,42 C68,54 62,65 54,70 C46,65 40,54 40,42 Z" />
+
+    <!-- Shield Glow Accent -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M54,39 L65,44 C65,53.5 60.5,62.5 54,67 C47.5,62.5 43,53.5 43,44 Z" />
+
+    <!-- Lock Keyhole / Vault Core -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,47 C51.79,47 50,48.79 50,51 C50,52.42 50.74,53.67 51.86,54.38 L51,60 L57,60 L56.14,54.38 C57.26,53.67 58,52.42 58,51 C58,48.79 56.21,47 54,47 Z" />
+</vector>

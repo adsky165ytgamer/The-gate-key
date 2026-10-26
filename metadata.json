@@ -1,0 +1,6 @@
+{
+  "name": "AD Sky Vault",
+  "description": "Offline-first file encryption and recovery system with Android Keystore device binding and custom containers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

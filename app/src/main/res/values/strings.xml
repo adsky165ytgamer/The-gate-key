@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">AD Sky Vault</string>
+    <string name="encrypt_title">Encrypt File</string>
+    <string name="decrypt_title">Decrypt File</string>
+    <string name="batch_encrypt_title">Batch Encryption</string>
+    <string name="batch_decrypt_title">Batch Decryption</string>
+    <string name="recovery_key_title">Recovery Secret</string>
+    <string name="device_security_title">Device &amp; Security</string>
+    <string name="about_title">About AD Sky Vault</string>
+    <string name="audit_log_title">Security Audit Log</string>
+</resources>
