@@ -6,8 +6,15 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -220,15 +227,29 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
-                        when (currentScreen) {
-                            VaultScreen.HOME -> HomeScreen(viewModel = viewModel)
-                            VaultScreen.ENCRYPT -> EncryptScreen(viewModel = viewModel)
-                            VaultScreen.DECRYPT -> DecryptScreen(viewModel = viewModel)
-                            VaultScreen.BATCH -> BatchScreen(viewModel = viewModel)
-                            VaultScreen.RECOVERY_KEY -> RecoveryKeyScreen(viewModel = viewModel)
-                            VaultScreen.DEVICE_SECURITY -> DeviceSecurityScreen(viewModel = viewModel)
-                            VaultScreen.ABOUT -> AboutScreen(viewModel = viewModel)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                            .consumeWindowInsets(innerPadding)
+                    ) {
+                        AnimatedContent(
+                            targetState = currentScreen,
+                            transitionSpec = {
+                                fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) togetherWith
+                                        fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
+                            },
+                            label = "ScreenTransition"
+                        ) { targetScreen ->
+                            when (targetScreen) {
+                                VaultScreen.HOME -> HomeScreen(viewModel = viewModel)
+                                VaultScreen.ENCRYPT -> EncryptScreen(viewModel = viewModel)
+                                VaultScreen.DECRYPT -> DecryptScreen(viewModel = viewModel)
+                                VaultScreen.BATCH -> BatchScreen(viewModel = viewModel)
+                                VaultScreen.RECOVERY_KEY -> RecoveryKeyScreen(viewModel = viewModel)
+                                VaultScreen.DEVICE_SECURITY -> DeviceSecurityScreen(viewModel = viewModel)
+                                VaultScreen.ABOUT -> AboutScreen(viewModel = viewModel)
+                            }
                         }
                     }
                 }

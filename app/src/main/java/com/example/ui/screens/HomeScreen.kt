@@ -47,6 +47,7 @@ import com.example.ui.VaultScreen
 import com.example.ui.VaultViewModel
 import com.example.ui.components.AuditLogCard
 import com.example.ui.components.HardwareSecurityPill
+import com.example.ui.components.bounceClick
 import com.example.ui.theme.VaultAccentAmber
 import com.example.ui.theme.VaultAccentGreen
 import com.example.ui.theme.VaultBorder
@@ -309,7 +310,7 @@ fun ActionCard(
 ) {
     Card(
         modifier = modifier
-            .clickable { onClick() }
+            .bounceClick { onClick() }
             .testTag(testTag),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = VaultCard),

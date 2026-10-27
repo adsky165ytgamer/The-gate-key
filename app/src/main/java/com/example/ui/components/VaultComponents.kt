@@ -47,6 +47,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.crypto.CipherAlgorithm
 import com.example.crypto.HardwareSecurityInfo
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.scale
 import com.example.ui.theme.VaultAccentAmber
 import com.example.ui.theme.VaultAccentGreen
 import com.example.ui.theme.VaultAccentRose
@@ -59,6 +67,31 @@ import com.example.ui.theme.VaultTextPrimary
 import com.example.ui.theme.VaultTextSecondary
 
 @Composable
+fun Modifier.bounceClick(
+    onClick: () -> Unit = {}
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "BounceAnimation"
+    )
+
+    return this
+        .scale(scale)
+        .clickable(
+            interactionSource = interactionSource,
+            indication = androidx.compose.material3.ripple()
+        ) {
+            onClick()
+        }
+}
+
+@Composable
 fun HardwareSecurityPill(
     info: HardwareSecurityInfo,
     modifier: Modifier = Modifier,
@@ -68,7 +101,7 @@ fun HardwareSecurityPill(
     Surface(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .clickable { onClick() }
+            .bounceClick { onClick() }
             .testTag("hardware_security_pill"),
         color = VaultSurfaceVariant,
         shape = RoundedCornerShape(20.dp),
@@ -114,7 +147,7 @@ fun AlgorithmSelectionCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onSelect() }
+            .bounceClick { onSelect() }
             .testTag("algo_card_${algorithm.name}"),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
