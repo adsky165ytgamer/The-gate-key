@@ -29,12 +29,22 @@ import java.io.FileOutputStream
 
 enum class VaultScreen {
     HOME,
+    SECURITY_AND_ENCRYPTION,
     ENCRYPT,
     DECRYPT,
     BATCH,
     RECOVERY_KEY,
     DEVICE_SECURITY,
     ABOUT
+}
+
+enum class SecurityTab(val title: String) {
+    ENCRYPT("Encrypt"),
+    DECRYPT("Decrypt"),
+    BATCH("Batch"),
+    RECOVERY("Recovery"),
+    MIGRATION("Migration"),
+    AUDIT("Audit & Device")
 }
 
 enum class DecryptAuthMode {
@@ -149,12 +159,78 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     private val _batchCompletedCount = MutableStateFlow(0)
     val batchCompletedCount: StateFlow<Int> = _batchCompletedCount.asStateFlow()
 
+    // --- SECURITY & ENCRYPTION TAB STATE ---
+    private val _selectedSecurityTab = MutableStateFlow(SecurityTab.ENCRYPT)
+    val selectedSecurityTab: StateFlow<SecurityTab> = _selectedSecurityTab.asStateFlow()
+
+    fun setSelectedSecurityTab(tab: SecurityTab) {
+        _selectedSecurityTab.value = tab
+    }
+
+    // --- CONTAINER MIGRATION STATE ---
+    private val _migrationContainerUri = MutableStateFlow<Uri?>(null)
+    val migrationContainerUri: StateFlow<Uri?> = _migrationContainerUri.asStateFlow()
+
+    private val _migrationHeader = MutableStateFlow<ParsedContainerHeader?>(null)
+    val migrationHeader: StateFlow<ParsedContainerHeader?> = _migrationHeader.asStateFlow()
+
+    private val _migrationEnvelopes = MutableStateFlow<List<String>>(emptyList())
+    val migrationEnvelopes: StateFlow<List<String>> = _migrationEnvelopes.asStateFlow()
+
+    private val _migrationAuthMode = MutableStateFlow(DecryptAuthMode.DEVICE_KEYSTORE)
+    val migrationAuthMode: StateFlow<DecryptAuthMode> = _migrationAuthMode.asStateFlow()
+
+    private val _migrationAuthCredential = MutableStateFlow("")
+    val migrationAuthCredential: StateFlow<String> = _migrationAuthCredential.asStateFlow()
+
+    private val _migrationAuthRecoverySecret = MutableStateFlow("")
+    val migrationAuthRecoverySecret: StateFlow<String> = _migrationAuthRecoverySecret.asStateFlow()
+
+    private val _migrationTargetAlgorithm = MutableStateFlow(CipherAlgorithm.AES_256_GCM)
+    val migrationTargetAlgorithm: StateFlow<CipherAlgorithm> = _migrationTargetAlgorithm.asStateFlow()
+
+    private val _migrationNewCredential = MutableStateFlow("")
+    val migrationNewCredential: StateFlow<String> = _migrationNewCredential.asStateFlow()
+
+    private val _migrationRebindKeystore = MutableStateFlow(true)
+    val migrationRebindKeystore: StateFlow<Boolean> = _migrationRebindKeystore.asStateFlow()
+
+    private val _migrationEnableRecovery = MutableStateFlow(true)
+    val migrationEnableRecovery: StateFlow<Boolean> = _migrationEnableRecovery.asStateFlow()
+
+    private val _migrationResultFile = MutableStateFlow<File?>(null)
+    val migrationResultFile: StateFlow<File?> = _migrationResultFile.asStateFlow()
+
     init {
         refreshHardwareSecurity()
     }
 
     fun navigateTo(screen: VaultScreen) {
-        _currentScreen.value = screen
+        when (screen) {
+            VaultScreen.ENCRYPT -> {
+                _selectedSecurityTab.value = SecurityTab.ENCRYPT
+                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
+            }
+            VaultScreen.DECRYPT -> {
+                _selectedSecurityTab.value = SecurityTab.DECRYPT
+                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
+            }
+            VaultScreen.BATCH -> {
+                _selectedSecurityTab.value = SecurityTab.BATCH
+                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
+            }
+            VaultScreen.RECOVERY_KEY -> {
+                _selectedSecurityTab.value = SecurityTab.RECOVERY
+                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
+            }
+            VaultScreen.DEVICE_SECURITY -> {
+                _selectedSecurityTab.value = SecurityTab.AUDIT
+                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
+            }
+            else -> {
+                _currentScreen.value = screen
+            }
+        }
         _errorMessage.value = null
         _operationSuccessMessage.value = null
     }
@@ -444,6 +520,142 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     fun clearAuditLogs() {
         viewModelScope.launch(Dispatchers.IO) {
             db.auditLogDao().clearAllLogs()
+        }
+    }
+
+    // --- MIGRATION METHODS ---
+    fun setMigrationContainerUri(uri: Uri?) {
+        _migrationContainerUri.value = uri
+        _migrationResultFile.value = null
+        if (uri != null) {
+            try {
+                val (header, envs) = SkyVaultEngine.inspectContainerHeader(getApplication(), uri)
+                _migrationHeader.value = header
+                _migrationEnvelopes.value = envs
+                val hasDevice = header.envelopes.any { it.envelopeType == ContainerConstants.ENVELOPE_DEVICE_KEYSTORE }
+                val hasCred = header.envelopes.any { it.envelopeType == ContainerConstants.ENVELOPE_CUSTOM_CREDENTIAL }
+                _migrationAuthMode.value = when {
+                    hasDevice -> DecryptAuthMode.DEVICE_KEYSTORE
+                    hasCred -> DecryptAuthMode.CUSTOM_CREDENTIAL
+                    else -> DecryptAuthMode.RECOVERY_SECRET
+                }
+                _migrationTargetAlgorithm.value = header.algorithm
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to inspect container for migration: ${e.message}"
+                _migrationHeader.value = null
+                _migrationEnvelopes.value = emptyList()
+            }
+        } else {
+            _migrationHeader.value = null
+            _migrationEnvelopes.value = emptyList()
+        }
+    }
+
+    fun setMigrationAuthMode(mode: DecryptAuthMode) {
+        _migrationAuthMode.value = mode
+    }
+
+    fun setMigrationAuthCredential(cred: String) {
+        _migrationAuthCredential.value = cred
+    }
+
+    fun setMigrationAuthRecoverySecret(secret: String) {
+        _migrationAuthRecoverySecret.value = secret
+    }
+
+    fun setMigrationTargetAlgorithm(algo: CipherAlgorithm) {
+        _migrationTargetAlgorithm.value = algo
+    }
+
+    fun setMigrationNewCredential(cred: String) {
+        _migrationNewCredential.value = cred
+    }
+
+    fun setMigrationRebindKeystore(rebind: Boolean) {
+        _migrationRebindKeystore.value = rebind
+    }
+
+    fun setMigrationEnableRecovery(enable: Boolean) {
+        _migrationEnableRecovery.value = enable
+    }
+
+    fun startMigration() {
+        val uri = _migrationContainerUri.value ?: return
+        _isProcessing.value = true
+        _progressFraction.value = 0f
+        _statusMessage.value = "Authenticating container for migration..."
+        _errorMessage.value = null
+        _operationSuccessMessage.value = null
+        _migrationResultFile.value = null
+        isCancelledFlag = false
+
+        activeJob = viewModelScope.launch(Dispatchers.IO) {
+            var tempDecryptedFile: File? = null
+            try {
+                val authCred = if (_migrationAuthMode.value == DecryptAuthMode.CUSTOM_CREDENTIAL) {
+                    _migrationAuthCredential.value.toCharArray()
+                } else null
+
+                val authRecSecret = if (_migrationAuthMode.value == DecryptAuthMode.RECOVERY_SECRET) {
+                    _migrationAuthRecoverySecret.value
+                } else null
+
+                val decryptResult = SkyVaultEngine.decryptFile(
+                    context = getApplication(),
+                    containerUri = uri,
+                    customCredential = authCred,
+                    recoverySecretString = authRecSecret,
+                    progressCallback = { bytes, total, chunk, _ ->
+                        _statusMessage.value = "Decrypting container for migration ($chunk)..."
+                        if (total > 0) _progressFraction.value = (bytes.toFloat() / total.toFloat()) * 0.5f
+                    },
+                    isCancelled = { isCancelledFlag }
+                )
+                tempDecryptedFile = decryptResult.decryptedTempFile
+
+                _statusMessage.value = "Re-encrypting and binding to generation ${decryptResult.generationNumber + 1}..."
+                val newCred = if (_migrationNewCredential.value.isNotEmpty()) {
+                    _migrationNewCredential.value.toCharArray()
+                } else null
+
+                val migratedFile = SkyVaultEngine.migrateContainer(
+                    context = getApplication(),
+                    decryptedFile = tempDecryptedFile,
+                    originalMetadata = decryptResult.metadata,
+                    newAlgorithm = _migrationTargetAlgorithm.value,
+                    newCustomCredential = newCred,
+                    enableDeviceKeystore = _migrationRebindKeystore.value,
+                    enableRecoverySecret = _migrationEnableRecovery.value,
+                    signatureMode = SignatureMode.DEFAULT_HIDDEN,
+                    customIdentityLabel = null,
+                    progressCallback = { bytes, total, chunk, _ ->
+                        _statusMessage.value = "Migrating to new container envelope ($chunk)..."
+                        if (total > 0) _progressFraction.value = 0.5f + (bytes.toFloat() / total.toFloat()) * 0.5f
+                    },
+                    isCancelled = { isCancelledFlag }
+                )
+
+                _migrationResultFile.value = migratedFile
+                _operationSuccessMessage.value = "Container successfully migrated to Generation ${decryptResult.generationNumber + 1} (${migratedFile.length() / 1024} KB)!"
+
+                db.auditLogDao().insertLog(
+                    AuditLogEntry(
+                        operation = "MIGRATE",
+                        filename = decryptResult.metadata.originalFilename,
+                        algorithm = _migrationTargetAlgorithm.value.displayName,
+                        envelopeUsed = "Migration Pipeline",
+                        status = "SUCCESS",
+                        details = "Upgraded from Gen ${decryptResult.generationNumber} to Gen ${decryptResult.generationNumber + 1}"
+                    )
+                )
+            } catch (e: Exception) {
+                if (e !is InterruptedException) {
+                    _errorMessage.value = "Migration failed: ${e.message}"
+                }
+            } finally {
+                tempDecryptedFile?.delete()
+                _isProcessing.value = false
+            }
         }
     }
 }

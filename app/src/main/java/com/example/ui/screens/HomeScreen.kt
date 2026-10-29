@@ -1,101 +1,65 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.example.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.FolderZip
-import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.PublicOff
-import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.VaultScreen
 import com.example.ui.VaultViewModel
-import com.example.ui.components.AuditLogCard
-import com.example.ui.components.EmptyState
-import com.example.ui.components.ExpressiveTile
-import com.example.ui.components.HardwareSecurityPill
 import com.example.ui.components.InfoChip
-import com.example.ui.components.SectionHeader
 import com.example.ui.components.ShapeBadge
-import com.example.ui.components.connectedShape
 import com.example.ui.components.staggeredEntrance
 import com.example.ui.theme.VaultBadgeShape
-import com.example.ui.theme.VaultTheme
+import com.example.ui.theme.VaultMotion
 import com.example.ui.theme.emphasized
-
-private enum class TileStyle { Primary, Success, Tertiary, Warning, Secondary, Neutral }
-
-private class TileColors(val container: Color, val content: Color, val badge: Color, val onBadge: Color)
-
-@Composable
-private fun TileStyle.colors(): TileColors {
-    val s = MaterialTheme.colorScheme
-    val e = VaultTheme.colors
-    return when (this) {
-        TileStyle.Primary -> TileColors(s.primaryContainer, s.onPrimaryContainer, s.primary, s.onPrimary)
-        TileStyle.Success -> TileColors(e.successContainer, e.onSuccessContainer, e.success, e.onSuccess)
-        TileStyle.Tertiary -> TileColors(s.tertiaryContainer, s.onTertiaryContainer, s.tertiary, s.onTertiary)
-        TileStyle.Warning -> TileColors(e.warningContainer, e.onWarningContainer, e.warning, e.onWarning)
-        TileStyle.Secondary -> TileColors(s.secondaryContainer, s.onSecondaryContainer, s.secondary, s.onSecondary)
-        TileStyle.Neutral -> TileColors(s.surfaceContainerHigh, s.onSurface, s.onSurfaceVariant, s.surfaceContainerHigh)
-    }
-}
-
-private class HomeTile(
-    val title: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val style: TileStyle,
-    val polygon: VaultBadgeShape,
-    val target: VaultScreen,
-    val tag: String
-)
-
-private val homeTiles = listOf(
-    HomeTile("Encrypt file", "Stream into .adsky", Icons.Rounded.Lock, TileStyle.Primary, VaultBadgeShape.Cookie9Sided, VaultScreen.ENCRYPT, "nav_encrypt_button"),
-    HomeTile("Decrypt file", "Unwrap and verify", Icons.Rounded.LockOpen, TileStyle.Success, VaultBadgeShape.Sunny, VaultScreen.DECRYPT, "nav_decrypt_button"),
-    HomeTile("Batch queue", "Many files at once", Icons.Rounded.FolderZip, TileStyle.Tertiary, VaultBadgeShape.Clover4Leaf, VaultScreen.BATCH, "nav_batch_button"),
-    HomeTile("Recovery secret", "Master cross-device key", Icons.Rounded.Key, TileStyle.Warning, VaultBadgeShape.Gem, VaultScreen.RECOVERY_KEY, "nav_recovery_button"),
-    HomeTile("Device & security", "Keystore and audit log", Icons.Rounded.Security, TileStyle.Secondary, VaultBadgeShape.SoftBurst, VaultScreen.DEVICE_SECURITY, "nav_device_security_button"),
-    HomeTile("About", "Architecture and spec", Icons.Rounded.Info, TileStyle.Neutral, VaultBadgeShape.Cookie12Sided, VaultScreen.ABOUT, "nav_about_button"),
-)
 
 @Composable
 fun HomeScreen(
@@ -103,121 +67,173 @@ fun HomeScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
+    val haptic = LocalHapticFeedback.current
     val hardwareInfo by viewModel.hardwareSecurity.collectAsStateWithLifecycle()
-    val auditLogs by viewModel.auditLogs.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
 
-    // Dynamic density & font scale for adaptive column sizing
-    val fontScale = LocalDensity.current.fontScale.coerceIn(1f, 2f)
-    val recent = auditLogs.take(3)
-
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 160.dp * fontScale),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = contentPadding,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(contentPadding),
+        contentAlignment = Alignment.TopCenter
     ) {
-        item(key = "hero", span = { GridItemSpan(maxLineSpan) }) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .widthIn(max = 680.dp)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(28.dp)
+        ) {
+            // Tasteful, Minimal Header
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .staggeredEntrance(0),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                InfoChip(
+                    text = "100% Offline • Keystore Hardware Ready",
+                    leading = Icons.Rounded.PublicOff,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    text = "AD Sky Vault",
+                    style = MaterialTheme.typography.headlineMedium.emphasized(FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "On-device file encryption & authenticated envelopes",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // PRIMARY PROMINENT CONTAINER: "Security & Encryption"
+            // The undisputed central feature of the home screen.
+            val interactionSource = remember { MutableInteractionSource() }
+            val isPressed by interactionSource.collectIsPressedAsState()
+            val scale by animateFloatAsState(
+                targetValue = if (isPressed) 0.98f else 1.0f,
+                animationSpec = VaultMotion.fastSpatialSpec(),
+                label = "primary_container_press_scale"
+            )
+
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .staggeredEntrance(0)
-                    .testTag("hero_vault_card"),
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    .staggeredEntrance(1)
+                    .testTag("security_and_encryption_card")
+                    .testTag("hero_vault_card")
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = "Security & Encryption. Protect files and manage your security tools."
+                    }
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null, // Surface provides ripple
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.navigateTo(VaultScreen.SECURITY_AND_ENCRYPTION)
+                        }
+                    ),
                 shape = RoundedCornerShape(32.dp),
                 color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                ),
+                shadowElevation = 4.dp
             ) {
-                Column(Modifier.padding(24.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(
+                    modifier = Modifier.padding(28.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Expressive Security Badge
                         ShapeBadge(
                             icon = Icons.Rounded.Shield,
                             polygon = VaultBadgeShape.Cookie12Sided,
-                            size = 72.dp,
+                            size = 64.dp,
                             rotate = true,
-                            contentDescription = "Vault shield"
+                            contentDescription = "Security Shield"
                         )
-                        Spacer(Modifier.width(18.dp))
-                        Column(Modifier.weight(1f)) {
+
+                        Spacer(Modifier.width(20.dp))
+
+                        // Exact title and subtitle
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Sealed on this device. Nowhere else.",
-                                style = MaterialTheme.typography.titleLarge.emphasized(FontWeight.Bold),
-                                maxLines = 2
+                                text = "Security & Encryption",
+                                style = MaterialTheme.typography.headlineSmall.emphasized(FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            Spacer(Modifier.size(4.dp))
+                            Spacer(Modifier.height(6.dp))
                             Text(
-                                "Authenticated .adsky containers backed by Android Keystore hardware keys.",
+                                text = "Protect files and manage your security tools.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.84f)
+                            )
+                        }
+
+                        Spacer(Modifier.width(16.dp))
+
+                        // Trailing Interaction Affordance
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
-                    Spacer(Modifier.size(16.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        InfoChip(
-                            text = "100% offline",
-                            leading = Icons.Rounded.PublicOff,
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        )
-                        HardwareSecurityPill(
-                            info = hardwareInfo,
-                            onClick = { viewModel.navigateTo(VaultScreen.DEVICE_SECURITY) }
-                        )
-                    }
                 }
             }
-        }
 
-        item(key = "ops-header", span = { GridItemSpan(maxLineSpan) }) {
-            SectionHeader("Cryptographic operations")
-        }
+            Spacer(Modifier.weight(1f, fill = false))
+            Spacer(Modifier.height(24.dp))
 
-        itemsIndexed(homeTiles, key = { _, tile -> tile.tag }) { index, tile ->
-            val c = tile.style.colors()
-            ExpressiveTile(
-                title = tile.title,
-                subtitle = tile.subtitle,
-                icon = tile.icon,
-                containerColor = c.container,
-                contentColor = c.content,
-                badgeColor = c.badge,
-                onBadgeColor = c.onBadge,
-                badgePolygon = tile.polygon,
-                modifier = Modifier.staggeredEntrance(index + 1),
-                testTag = tile.tag,
-                onClick = { viewModel.navigateTo(tile.target) }
-            )
-        }
-
-        item(key = "audit-header", span = { GridItemSpan(maxLineSpan) }) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Understated, minimal footer link
+            TextButton(
+                onClick = { viewModel.navigateTo(VaultScreen.ABOUT) },
+                modifier = Modifier
+                    .staggeredEntrance(2)
+                    .testTag("nav_about_button")
             ) {
-                SectionHeader("Recent activity", modifier = Modifier.weight(1f))
-                TextButton(onClick = { viewModel.navigateTo(VaultScreen.DEVICE_SECURITY) }) {
-                    Text("View all (${auditLogs.size})")
-                }
-            }
-        }
-
-        item(key = "audit-list", span = { GridItemSpan(maxLineSpan) }) {
-            if (recent.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Rounded.History,
-                    title = "No activity yet",
-                    message = "Encryption and access attempts are recorded here automatically."
+                Icon(
+                    Icons.Rounded.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
                 )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    recent.forEachIndexed { i, log ->
-                        AuditLogCard(log = log, shape = connectedShape(i, recent.size))
-                    }
-                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "About AD Sky Vault • Specifications & Security Model",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
