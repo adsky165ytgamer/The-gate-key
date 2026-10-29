@@ -1,587 +1,521 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+
 package com.example.ui.screens
 
 import android.net.Uri
+import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.SaveAlt
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.FileOpen
+import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.SaveAlt
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.crypto.ContainerConstants
+import com.example.crypto.ParsedContainerHeader
 import com.example.ui.DecryptAuthMode
 import com.example.ui.VaultViewModel
+import com.example.ui.components.BannerKind
+import com.example.ui.components.InfoChip
+import com.example.ui.components.KeyValueRow
 import com.example.ui.components.OperationProgressCard
-import com.example.ui.theme.VaultAccentAmber
-import com.example.ui.theme.VaultAccentGreen
-import com.example.ui.theme.VaultAccentRose
-import com.example.ui.theme.VaultBorder
-import com.example.ui.theme.VaultCard
-import com.example.ui.theme.VaultPrimary
-import com.example.ui.theme.VaultPrimaryContainer
-import com.example.ui.theme.VaultSurfaceVariant
-import com.example.ui.theme.VaultTextPrimary
-import com.example.ui.theme.VaultTextSecondary
+import com.example.ui.components.RadioOptionRow
+import com.example.ui.components.ResultCard
+import com.example.ui.components.ScreenWithActionBar
+import com.example.ui.components.SectionHeader
+import com.example.ui.components.SecretTextField
+import com.example.ui.components.ShapeBadge
+import com.example.ui.components.StatusBanner
+import com.example.ui.components.VaultButton
+import com.example.ui.components.VaultTonalButton
+import com.example.ui.components.connectedShape
+import com.example.ui.components.staggeredEntrance
+import com.example.ui.theme.VaultBadgeShape
+import com.example.ui.theme.VaultMotion
+import com.example.ui.theme.VaultTheme
+import com.example.ui.theme.emphasized
 
 @Composable
 fun DecryptScreen(
     viewModel: VaultViewModel,
+    contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
-    val containerUri by viewModel.decryptContainerUri.collectAsState()
-    val inspectedHeader by viewModel.inspectedHeader.collectAsState()
-    val inspectedEnvelopes by viewModel.inspectedEnvelopes.collectAsState()
-    val authMode by viewModel.decryptAuthMode.collectAsState()
-    val credentialInput by viewModel.decryptCredentialInput.collectAsState()
-    val recoverySecretInput by viewModel.decryptRecoverySecretInput.collectAsState()
-    val isProcessing by viewModel.isProcessing.collectAsState()
-    val progressFraction by viewModel.progressFraction.collectAsState()
-    val statusMessage by viewModel.statusMessage.collectAsState()
-    val currentChunk by viewModel.currentChunk.collectAsState()
-    val bytesProcessed by viewModel.bytesProcessed.collectAsState()
-    val totalBytes by viewModel.totalBytes.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val successMessage by viewModel.operationSuccessMessage.collectAsState()
-    val decryptedResult by viewModel.decryptedResult.collectAsState()
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val ext = VaultTheme.colors
 
-    var showPassword by remember { mutableStateOf(false) }
+    val containerUri by viewModel.decryptContainerUri.collectAsStateWithLifecycle()
+    val inspectedHeader by viewModel.inspectedHeader.collectAsStateWithLifecycle()
+    val inspectedEnvelopes by viewModel.inspectedEnvelopes.collectAsStateWithLifecycle()
+    val authMode by viewModel.decryptAuthMode.collectAsStateWithLifecycle()
+    val credentialInput by viewModel.decryptCredentialInput.collectAsStateWithLifecycle()
+    val recoverySecretInput by viewModel.decryptRecoverySecretInput.collectAsStateWithLifecycle()
+    val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
+    val progressFraction by viewModel.progressFraction.collectAsStateWithLifecycle()
+    val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
+    val currentChunk by viewModel.currentChunk.collectAsStateWithLifecycle()
+    val bytesProcessed by viewModel.bytesProcessed.collectAsStateWithLifecycle()
+    val totalBytes by viewModel.totalBytes.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val decryptedResult by viewModel.decryptedResult.collectAsStateWithLifecycle()
 
-    // SAF Picker to select .adsky container
-    val containerPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
+    val containerPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         viewModel.setDecryptContainerUri(uri)
     }
-
-    // SAF Creator to save decrypted payload
     val saveFileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+        ActivityResultContracts.CreateDocument("application/octet-stream")
     ) { destinationUri: Uri? ->
-        if (destinationUri != null && decryptedResult != null) {
-            viewModel.saveResultToDestinationUri(decryptedResult!!.decryptedTempFile, destinationUri)
+        val result = decryptedResult
+        if (destinationUri != null && result != null) {
+            viewModel.saveResultToDestinationUri(result.decryptedTempFile, destinationUri)
         }
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Decrypt & Verify Container",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = VaultTextPrimary
-            )
-            Text(
-                text = "Unwrap authorization envelopes, authenticate chunks, and verify digital signatures.",
-                fontSize = 12.sp,
-                color = VaultTextSecondary
-            )
-        }
-
-        // 1. Container Picker
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("decrypt_container_card"),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = VaultCard),
-                border = androidx.compose.foundation.BorderStroke(1.dp, VaultBorder)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "1. Encrypted .adsky File",
-                        fontWeight = FontWeight.Bold,
-                        color = VaultPrimary,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Button(
-                        onClick = { containerPicker.launch(arrayOf("*/*")) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("select_container_button"),
-                        colors = ButtonDefaults.buttonColors(containerColor = VaultPrimaryContainer),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.FileOpen, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (containerUri == null) "Select .adsky File" else "Change Selected Container",
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-        }
-
-        // 2. Inspected Header Details (Public metadata only, no private metadata before auth)
-        if (inspectedHeader != null) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("inspected_header_card"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = VaultSurfaceVariant),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, VaultBorder)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Shield,
-                                contentDescription = null,
-                                tint = VaultPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Container Structure Validated",
-                                fontWeight = FontWeight.Bold,
-                                color = VaultTextPrimary,
-                                fontSize = 14.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Algorithm:", color = VaultTextSecondary, fontSize = 12.sp)
-                            Text(
-                                text = inspectedHeader!!.algorithm.displayName,
-                                fontWeight = FontWeight.Bold,
-                                color = VaultPrimary,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Format Version:", color = VaultTextSecondary, fontSize = 12.sp)
-                            Text(
-                                text = "v${inspectedHeader!!.formatVersion}",
-                                color = VaultTextPrimary,
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Generation Count:", color = VaultTextSecondary, fontSize = 12.sp)
-                            Text(
-                                text = "#${inspectedHeader!!.generationNumber}",
-                                color = VaultTextPrimary,
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        val isSigned = (inspectedHeader!!.flags.toInt() and ContainerConstants.FLAG_IS_SIGNED.toInt()) != 0
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Signature:", color = VaultTextSecondary, fontSize = 12.sp)
-                            Text(
-                                text = if (isSigned) "Signed (ECDSA P-256)" else "Unsigned",
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isSigned) VaultAccentGreen else VaultTextSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "Available Authorization Envelopes:",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = VaultTextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        for (env in inspectedEnvelopes) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
-                                Box(modifier = Modifier.size(6.dp).background(VaultAccentGreen, CircleShape))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(text = env, fontSize = 12.sp, color = VaultTextPrimary)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 3. Authorization Mode Selection
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("auth_mode_card"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = VaultCard),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, VaultBorder)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "2. Authorization Method",
-                            fontWeight = FontWeight.Bold,
-                            color = VaultPrimary,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Device Keystore Option
-                        val hasDeviceEnv = inspectedHeader!!.envelopes.any { it.envelopeType == ContainerConstants.ENVELOPE_DEVICE_KEYSTORE }
-                        if (hasDeviceEnv) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { viewModel.setDecryptAuthMode(DecryptAuthMode.DEVICE_KEYSTORE) },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = authMode == DecryptAuthMode.DEVICE_KEYSTORE,
-                                    onClick = { viewModel.setDecryptAuthMode(DecryptAuthMode.DEVICE_KEYSTORE) },
-                                    colors = RadioButtonDefaults.colors(selectedColor = VaultPrimary)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Column {
-                                    Text(
-                                        text = "Original-Device Keystore",
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = VaultTextPrimary,
-                                        fontSize = 13.sp
-                                    )
-                                    Text(
-                                        text = "Unwraps automatically using local Android Keystore master key.",
-                                        fontSize = 11.sp,
-                                        color = VaultTextSecondary
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-
-                        // Custom Credential Option
-                        val hasCredEnv = inspectedHeader!!.envelopes.any { it.envelopeType == ContainerConstants.ENVELOPE_CUSTOM_CREDENTIAL }
-                        if (hasCredEnv) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { viewModel.setDecryptAuthMode(DecryptAuthMode.CUSTOM_CREDENTIAL) },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = authMode == DecryptAuthMode.CUSTOM_CREDENTIAL,
-                                    onClick = { viewModel.setDecryptAuthMode(DecryptAuthMode.CUSTOM_CREDENTIAL) },
-                                    colors = RadioButtonDefaults.colors(selectedColor = VaultPrimary)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Column {
-                                    Text(
-                                        text = "Custom PIN or Passphrase",
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = VaultTextPrimary,
-                                        fontSize = 13.sp
-                                    )
-                                    Text(
-                                        text = "Derives KEK with Argon2id parameters stored in the container header.",
-                                        fontSize = 11.sp,
-                                        color = VaultTextSecondary
-                                    )
-                                }
-                            }
-
-                            AnimatedVisibility(visible = authMode == DecryptAuthMode.CUSTOM_CREDENTIAL) {
-                                Column(modifier = Modifier.padding(top = 8.dp, start = 32.dp)) {
-                                    OutlinedTextField(
-                                        value = credentialInput,
-                                        onValueChange = { viewModel.setDecryptCredentialInput(it) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .testTag("input_decrypt_credential"),
-                                        label = { Text("Enter PIN or Passphrase") },
-                                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                                        singleLine = true,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = VaultPrimary,
-                                            unfocusedBorderColor = VaultBorder,
-                                            focusedTextColor = VaultTextPrimary,
-                                            unfocusedTextColor = VaultTextPrimary
-                                        ),
-                                        trailingIcon = {
-                                            Text(
-                                                text = if (showPassword) "Hide" else "Show",
-                                                color = VaultPrimary,
-                                                fontSize = 12.sp,
-                                                modifier = Modifier
-                                                    .clickable { showPassword = !showPassword }
-                                                    .padding(end = 12.dp)
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-
-                        // Recovery Secret Option
-                        val hasRecEnv = inspectedHeader!!.envelopes.any { it.envelopeType == ContainerConstants.ENVELOPE_RECOVERY_SECRET }
-                        if (hasRecEnv) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { viewModel.setDecryptAuthMode(DecryptAuthMode.RECOVERY_SECRET) },
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = authMode == DecryptAuthMode.RECOVERY_SECRET,
-                                    onClick = { viewModel.setDecryptAuthMode(DecryptAuthMode.RECOVERY_SECRET) },
-                                    colors = RadioButtonDefaults.colors(selectedColor = VaultAccentAmber)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Column {
-                                    Text(
-                                        text = "Master Recovery Secret",
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = VaultTextPrimary,
-                                        fontSize = 13.sp
-                                    )
-                                    Text(
-                                        text = "Use emergency recovery secret from original installation or cross-device transfer.",
-                                        fontSize = 11.sp,
-                                        color = VaultTextSecondary
-                                    )
-                                }
-                            }
-
-                            AnimatedVisibility(visible = authMode == DecryptAuthMode.RECOVERY_SECRET) {
-                                Column(modifier = Modifier.padding(top = 8.dp, start = 32.dp)) {
-                                    OutlinedTextField(
-                                        value = recoverySecretInput,
-                                        onValueChange = { viewModel.setDecryptRecoverySecretInput(it) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .testTag("input_decrypt_recovery_secret"),
-                                        label = { Text("Enter Recovery Secret (ADSKY-...)") },
-                                        placeholder = { Text("ADSKY-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX") },
-                                        singleLine = true,
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = VaultAccentAmber,
-                                            unfocusedBorderColor = VaultBorder,
-                                            focusedTextColor = VaultTextPrimary,
-                                            unfocusedTextColor = VaultTextPrimary
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Error message if any
+    val header = inspectedHeader
+    val listState = rememberLazyListState()
+    LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
-            item {
-                Surface(
-                    color = Color(0x33F43F5E),
-                    shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, VaultAccentRose),
-                    modifier = Modifier.fillMaxWidth().testTag("decryption_error_box")
+            haptic.performHapticFeedback(HapticFeedbackType.Reject)
+            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount.coerceAtLeast(1) - 1)
+        }
+    }
+    LaunchedEffect(decryptedResult) {
+        if (decryptedResult != null) {
+            haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount.coerceAtLeast(1) - 1)
+        }
+    }
+
+    val canDecrypt = containerUri != null &&
+        header != null &&
+        !isProcessing &&
+        (authMode != DecryptAuthMode.CUSTOM_CREDENTIAL || credentialInput.isNotEmpty()) &&
+        (authMode != DecryptAuthMode.RECOVERY_SECRET || recoverySecretInput.isNotEmpty())
+
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val isWide = maxWidth >= 720.dp
+
+        if (isWide) {
+            // Adaptive 2-column layout on wide screens
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .padding(contentPadding)
+                    .verticalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Left Column: Container file picker + Authorization method
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .padding(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Text(
-                        text = errorMessage!!,
-                        color = VaultAccentRose,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(12.dp)
+                    DecryptContainerCard(
+                        containerUri = containerUri,
+                        ext = ext,
+                        onSelectContainer = { containerPicker.launch(arrayOf("*/*")) }
                     )
+
+                    if (header != null) {
+                        AuthorizationCard(
+                            header = header,
+                            authMode = authMode,
+                            onSelectMode = { viewModel.setDecryptAuthMode(it) },
+                            credentialInput = credentialInput,
+                            onCredentialChange = { viewModel.setDecryptCredentialInput(it) },
+                            recoverySecretInput = recoverySecretInput,
+                            onRecoverySecretChange = { viewModel.setDecryptRecoverySecretInput(it) }
+                        )
+                    }
+                }
+
+                // Right Column: Header details + Action button + Progress / Results
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .padding(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    if (header != null) {
+                        HeaderDetailsCard(
+                            header = header,
+                            inspectedEnvelopes = inspectedEnvelopes
+                        )
+                    }
+
+                    OperationProgressCard(
+                        isProcessing = isProcessing,
+                        progress = progressFraction,
+                        statusMessage = statusMessage,
+                        currentChunk = currentChunk,
+                        bytesProcessed = bytesProcessed,
+                        totalBytes = totalBytes,
+                        onCancel = { viewModel.cancelOperation() }
+                    )
+
+                    AnimatedVisibility(
+                        visible = !isProcessing,
+                        enter = expandVertically(VaultMotion.defaultSpatialSpec()) + fadeIn(VaultMotion.defaultEffectsSpec()),
+                        exit = shrinkVertically(VaultMotion.fastSpatialSpec()) + fadeOut(VaultMotion.fastEffectsSpec())
+                    ) {
+                        VaultButton(
+                            text = "Decrypt & verify container",
+                            icon = Icons.Rounded.LockOpen,
+                            enabled = canDecrypt,
+                            onClick = { viewModel.startDecryption() },
+                            modifier = Modifier.fillMaxWidth().testTag("start_decryption_button")
+                        )
+                    }
+
+                    if (errorMessage != null) {
+                        StatusBanner(
+                            kind = BannerKind.Error,
+                            message = errorMessage.orEmpty(),
+                            modifier = Modifier.testTag("decryption_error_box")
+                        )
+                    }
+
+                    val result = decryptedResult
+                    if (result != null) {
+                        ResultCard(
+                            title = "Decrypted & verified",
+                            lines = listOf(
+                                result.metadata.originalFilename,
+                                "${Formatter.formatFileSize(context, result.metadata.originalByteCount)} · ${result.metadata.mimeType}"
+                            ),
+                            badge = if (result.signatureVerified) "Signature verified: ${result.signerIdentity}" else null,
+                            actionText = "Save decrypted file",
+                            actionIcon = Icons.Rounded.SaveAlt,
+                            onAction = { saveFileLauncher.launch(result.metadata.originalFilename) },
+                            cardTag = "decryption_result_card",
+                            actionTag = "save_decrypted_file_button"
+                        )
+                    }
                 }
             }
-        }
-
-        // Progress Card
-        item {
-            OperationProgressCard(
-                isProcessing = isProcessing,
-                progress = progressFraction,
-                statusMessage = statusMessage,
-                currentChunk = currentChunk,
-                bytesProcessed = bytesProcessed,
-                totalBytes = totalBytes,
-                onCancel = { viewModel.cancelOperation() }
-            )
-        }
-
-        // Decrypted Result Card (Private metadata now visible because authenticated)
-        if (decryptedResult != null) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("decryption_result_card"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF064E3B)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, VaultAccentGreen)
+        } else {
+            // Standard single-column flow with action bar for compact phones
+            ScreenWithActionBar(
+                contentPadding = contentPadding,
+                actionBar = {
+                    OperationProgressCard(
+                        isProcessing = isProcessing,
+                        progress = progressFraction,
+                        statusMessage = statusMessage,
+                        currentChunk = currentChunk,
+                        bytesProcessed = bytesProcessed,
+                        totalBytes = totalBytes,
+                        onCancel = { viewModel.cancelOperation() }
+                    )
+                    AnimatedVisibility(
+                        visible = !isProcessing,
+                        enter = expandVertically(VaultMotion.defaultSpatialSpec()) + fadeIn(VaultMotion.defaultEffectsSpec()),
+                        exit = shrinkVertically(VaultMotion.fastSpatialSpec()) + fadeOut(VaultMotion.fastEffectsSpec())
+                    ) {
+                        VaultButton(
+                            text = "Decrypt & verify container",
+                            icon = Icons.Rounded.LockOpen,
+                            enabled = canDecrypt,
+                            onClick = { viewModel.startDecryption() },
+                            modifier = Modifier.fillMaxWidth().testTag("start_decryption_button")
+                        )
+                    }
+                }
+            ) { padding ->
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = padding,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = VaultAccentGreen,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Decrypted & Integrity Verified",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 15.sp
+                    item(key = "picker") {
+                        DecryptContainerCard(
+                            containerUri = containerUri,
+                            ext = ext,
+                            onSelectContainer = { containerPicker.launch(arrayOf("*/*")) }
+                        )
+                    }
+
+                    if (header != null) {
+                        item(key = "header") {
+                            HeaderDetailsCard(
+                                header = header,
+                                inspectedEnvelopes = inspectedEnvelopes
                             )
                         }
-                        Spacer(modifier = Modifier.height(10.dp))
 
-                        Text(
-                            text = "Original File: ${decryptedResult!!.metadata.originalFilename}",
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "Size: ${decryptedResult!!.metadata.originalByteCount / 1024} KB (${decryptedResult!!.metadata.originalByteCount} bytes) | Type: ${decryptedResult!!.metadata.mimeType}",
-                            color = Color(0xFFD1FAE5),
-                            fontSize = 12.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        if (decryptedResult!!.signatureVerified) {
-                            Surface(
-                                color = Color(0xFF047857),
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.VerifiedUser,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Signature Verified: ${decryptedResult!!.signerIdentity}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
-                            }
+                        item(key = "auth") {
+                            AuthorizationCard(
+                                header = header,
+                                authMode = authMode,
+                                onSelectMode = { viewModel.setDecryptAuthMode(it) },
+                                credentialInput = credentialInput,
+                                onCredentialChange = { viewModel.setDecryptCredentialInput(it) },
+                                recoverySecretInput = recoverySecretInput,
+                                onRecoverySecretChange = { viewModel.setDecryptRecoverySecretInput(it) }
+                            )
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Button(
-                            onClick = {
-                                saveFileLauncher.launch(decryptedResult!!.metadata.originalFilename)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("save_decrypted_file_button"),
-                            colors = ButtonDefaults.buttonColors(containerColor = VaultAccentGreen),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.SaveAlt, contentDescription = null, tint = Color.Black)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Save Decrypted File via SAF", color = Color.Black, fontWeight = FontWeight.Bold)
+                    if (errorMessage != null) {
+                        item(key = "error") {
+                            StatusBanner(
+                                kind = BannerKind.Error,
+                                message = errorMessage.orEmpty(),
+                                modifier = Modifier.testTag("decryption_error_box")
+                            )
+                        }
+                    }
+
+                    val result = decryptedResult
+                    if (result != null) {
+                        item(key = "result") {
+                            ResultCard(
+                                title = "Decrypted & verified",
+                                lines = listOf(
+                                    result.metadata.originalFilename,
+                                    "${Formatter.formatFileSize(context, result.metadata.originalByteCount)} · ${result.metadata.mimeType}"
+                                ),
+                                badge = if (result.signatureVerified) "Signature verified: ${result.signerIdentity}" else null,
+                                actionText = "Save decrypted file",
+                                actionIcon = Icons.Rounded.SaveAlt,
+                                onAction = { saveFileLauncher.launch(result.metadata.originalFilename) },
+                                cardTag = "decryption_result_card",
+                                actionTag = "save_decrypted_file_button"
+                            )
                         }
                     }
                 }
             }
         }
+    }
+}
 
-        // Action Button
-        item {
-            val canDecrypt = containerUri != null &&
-                    inspectedHeader != null &&
-                    !isProcessing &&
-                    (authMode != DecryptAuthMode.CUSTOM_CREDENTIAL || credentialInput.isNotEmpty()) &&
-                    (authMode != DecryptAuthMode.RECOVERY_SECRET || recoverySecretInput.isNotEmpty())
+// ───────────────────────────── component cards ─────────────────────────────
 
-            Button(
-                onClick = { viewModel.startDecryption() },
-                enabled = canDecrypt,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .testTag("start_decryption_button"),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = VaultAccentGreen,
-                    disabledContainerColor = VaultBorder
-                ),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Icon(imageVector = Icons.Default.LockOpen, contentDescription = null, tint = Color.Black)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isProcessing) "Decrypting Stream..." else "Decrypt & Verify Container",
-                    color = if (canDecrypt) Color.Black else VaultTextSecondary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
+@Composable
+private fun DecryptContainerCard(
+    containerUri: Uri?,
+    ext: com.example.ui.theme.VaultExtendedColors,
+    onSelectContainer: () -> Unit
+) {
+    Column(Modifier.staggeredEntrance(0), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeader("Encrypted file", step = 1, subtitle = "Choose an .adsky container.")
+        Surface(
+            Modifier.fillMaxWidth().testTag("decrypt_container_card"),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ShapeBadge(
+                        icon = if (containerUri != null) Icons.Rounded.Check else Icons.Rounded.FileOpen,
+                        polygon = if (containerUri != null) VaultBadgeShape.Cookie9Sided else VaultBadgeShape.Sunny,
+                        size = 56.dp,
+                        containerColor = if (containerUri != null) ext.success else MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = if (containerUri != null) ext.onSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        if (containerUri != null) "Container selected" else "No container selected",
+                        style = MaterialTheme.typography.titleMedium.emphasized(),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                VaultTonalButton(
+                    text = if (containerUri == null) "Select .adsky file" else "Change container",
+                    icon = Icons.Rounded.FileOpen,
+                    onClick = onSelectContainer,
+                    modifier = Modifier.fillMaxWidth().testTag("select_container_button")
                 )
             }
-            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun HeaderDetailsCard(
+    header: ParsedContainerHeader,
+    inspectedEnvelopes: List<String>
+) {
+    val isSigned = (header.flags.toInt() and ContainerConstants.FLAG_IS_SIGNED.toInt()) != 0
+    Surface(
+        Modifier.fillMaxWidth().testTag("inspected_header_card"),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ShapeBadge(
+                    Icons.Rounded.Shield,
+                    polygon = VaultBadgeShape.Clover4Leaf,
+                    size = 44.dp,
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
+                Spacer(Modifier.width(14.dp))
+                Text("Structure validated", style = MaterialTheme.typography.titleMedium.emphasized(), modifier = Modifier.weight(1f))
+            }
+            Spacer(Modifier.size(10.dp))
+            KeyValueRow("Algorithm", header.algorithm.displayName)
+            KeyValueRow("Format version", "v${header.formatVersion}", monospace = true)
+            KeyValueRow("Generation", "#${header.generationNumber}", monospace = true)
+            KeyValueRow(
+                "Signature",
+                if (isSigned) "Signed (ECDSA P-256)" else "Unsigned",
+                valueColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(Modifier.size(12.dp))
+            Text("Available envelopes", style = MaterialTheme.typography.labelLarge.emphasized())
+            Spacer(Modifier.size(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                inspectedEnvelopes.forEach { env ->
+                    InfoChip(
+                        env,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuthorizationCard(
+    header: ParsedContainerHeader,
+    authMode: DecryptAuthMode,
+    onSelectMode: (DecryptAuthMode) -> Unit,
+    credentialInput: String,
+    onCredentialChange: (String) -> Unit,
+    recoverySecretInput: String,
+    onRecoverySecretChange: (String) -> Unit
+) {
+    val hasDevice = header.envelopes.any { it.envelopeType == ContainerConstants.ENVELOPE_DEVICE_KEYSTORE }
+    val hasCred = header.envelopes.any { it.envelopeType == ContainerConstants.ENVELOPE_CUSTOM_CREDENTIAL }
+    val hasRecovery = header.envelopes.any { it.envelopeType == ContainerConstants.ENVELOPE_RECOVERY_SECRET }
+    val count = listOf(hasDevice, hasCred, hasRecovery).count { it }
+    var index = 0
+
+    Column(Modifier.testTag("auth_mode_card"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeader("Authorization", step = 2, subtitle = "Pick how to unlock this container.")
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (hasDevice) {
+                RadioOptionRow(
+                    selected = authMode == DecryptAuthMode.DEVICE_KEYSTORE,
+                    onClick = { onSelectMode(DecryptAuthMode.DEVICE_KEYSTORE) },
+                    title = "Original-device Keystore",
+                    description = "Unlocks automatically with this phone's Keystore master key.",
+                    shape = connectedShape(index++, count)
+                )
+            }
+            if (hasCred) {
+                RadioOptionRow(
+                    selected = authMode == DecryptAuthMode.CUSTOM_CREDENTIAL,
+                    onClick = { onSelectMode(DecryptAuthMode.CUSTOM_CREDENTIAL) },
+                    title = "PIN or passphrase",
+                    description = "Derives key with the Argon2id parameters stored in the header.",
+                    shape = connectedShape(index++, count)
+                )
+            }
+            if (hasRecovery) {
+                RadioOptionRow(
+                    selected = authMode == DecryptAuthMode.RECOVERY_SECRET,
+                    onClick = { onSelectMode(DecryptAuthMode.RECOVERY_SECRET) },
+                    title = "Master recovery secret",
+                    description = "Use the secret from the original install, or one transferred from another device.",
+                    shape = connectedShape(index++, count)
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = authMode == DecryptAuthMode.CUSTOM_CREDENTIAL && hasCred,
+            enter = expandVertically(VaultMotion.defaultSpatialSpec()) + fadeIn(VaultMotion.defaultEffectsSpec()),
+            exit = shrinkVertically(VaultMotion.fastSpatialSpec()) + fadeOut(VaultMotion.fastEffectsSpec())
+        ) {
+            Surface(
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    SecretTextField(
+                        value = credentialInput,
+                        onValueChange = onCredentialChange,
+                        label = "PIN or passphrase",
+                        modifier = Modifier.testTag("input_decrypt_credential")
+                    )
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = authMode == DecryptAuthMode.RECOVERY_SECRET && hasRecovery,
+            enter = expandVertically(VaultMotion.defaultSpatialSpec()) + fadeIn(VaultMotion.defaultEffectsSpec()),
+            exit = shrinkVertically(VaultMotion.fastSpatialSpec()) + fadeOut(VaultMotion.fastEffectsSpec())
+        ) {
+            Surface(
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    SecretTextField(
+                        value = recoverySecretInput,
+                        onValueChange = onRecoverySecretChange,
+                        label = "Recovery secret (ADSKY-…)",
+                        placeholder = "ADSKY-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX",
+                        obscured = false,
+                        modifier = Modifier.testTag("input_decrypt_recovery_secret")
+                    )
+                }
+            }
         }
     }
 }

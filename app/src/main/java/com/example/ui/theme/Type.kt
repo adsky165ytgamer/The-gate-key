@@ -4,33 +4,15 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
-val Typography =
-  Typography(
-    bodyLarge =
-      TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp,
-      )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
-  )
+/**
+ * All sizes are sp, so every style scales with the system font size.
+ * Expressive type = the same scale, but with heavier "emphasized" variants for titles and labels.
+ */
+val VaultTypography = Typography()
+
+/** Expressive emphasized variant of any style. */
+fun TextStyle.emphasized(weight: FontWeight = FontWeight.SemiBold): TextStyle = copy(fontWeight = weight)
+
+/** Monospace variant for keys, fingerprints, sizes. */
+fun TextStyle.mono(): TextStyle = copy(fontFamily = FontFamily.Monospace)

@@ -1,86 +1,91 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.background
+import android.text.format.DateUtils
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.AuditLogEntry
-import com.example.ui.theme.VaultAccentAmber
-import com.example.ui.theme.VaultAccentGreen
-import com.example.ui.theme.VaultBorder
-import com.example.ui.theme.VaultCard
-import com.example.ui.theme.VaultTextPrimary
-import com.example.ui.theme.VaultTextSecondary
+import com.example.ui.theme.VaultTheme
+import com.example.ui.theme.emphasized
 
+/** One row of the security audit log. Pass a [connectedShape] to stack rows into a connected group. */
 @Composable
 fun AuditLogCard(
     log: AuditLogEntry,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shape: Shape = MaterialTheme.shapes.large
 ) {
+    val ext = VaultTheme.colors
     val isSuccess = log.status == "SUCCESS"
-    val statusColor = if (isSuccess) VaultAccentGreen else VaultAccentAmber
+    val badgeContainer = if (isSuccess) ext.successContainer else ext.warningContainer
+    val badgeContent = if (isSuccess) ext.onSuccessContainer else ext.onWarningContainer
+    val relativeTime = remember(log.timestamp) {
+        DateUtils.getRelativeTimeSpanString(log.timestamp, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString()
+    }
 
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = VaultCard),
-        border = androidx.compose.foundation.BorderStroke(1.dp, VaultBorder)
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .background(statusColor, CircleShape)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+            Surface(shape = CircleShape, color = badgeContainer, contentColor = badgeContent) {
+                Icon(
+                    if (isSuccess) Icons.Rounded.Check else Icons.Rounded.Close,
+                    contentDescription = log.status,
+                    modifier = Modifier.padding(6.dp).size(18.dp)
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "${log.operation} · ${log.filename}",
+                    style = MaterialTheme.typography.titleSmall.emphasized(),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    "${log.algorithm} · ${log.envelopeUsed}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (log.details.isNotBlank()) {
                     Text(
-                        text = "${log.operation}: ${log.filename}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = VaultTextPrimary,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = log.status,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = statusColor
+                        log.details,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${log.algorithm} | ${log.envelopeUsed} - ${log.details}",
-                    fontSize = 11.sp,
-                    color = VaultTextSecondary,
-                    maxLines = 1
+                    relativeTime,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = badgeContent,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
