@@ -19,3 +19,23 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# ───── AD Sky Vault release rules (R8 full mode) ─────
+-keepattributes SourceFile,LineNumberTable,*Annotation*,Signature,InnerClasses,EnclosingMethod
+-renamesourcefileattribute SourceFile
+
+# Container format + crypto engine: reflection-free, but keep names stable for crash reports and format safety.
+-keep class com.example.crypto.** { *; }
+-keep class com.example.data.** { *; }
+
+# Tink (protobuf-lite reflection on key templates) and Bouncy Castle (Argon2 via provider lookups)
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn com.google.crypto.tink.**
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn javax.annotation.**
+-keep class org.bouncycastle.crypto.generators.Argon2BytesGenerator { *; }
+-keep class org.bouncycastle.crypto.params.Argon2Parameters** { *; }
+-dontwarn org.bouncycastle.**
+
+# Room / Moshi are handled by their generated code + consumer rules.
+-dontwarn kotlinx.coroutines.debug.**
