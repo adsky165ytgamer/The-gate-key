@@ -2,25 +2,24 @@
 
 package com.example.ui.screens
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,7 +27,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.PublicOff
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,24 +41,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.VaultScreen
 import com.example.ui.VaultViewModel
-import com.example.ui.components.InfoChip
 import com.example.ui.components.ShapeBadge
 import com.example.ui.components.staggeredEntrance
 import com.example.ui.theme.VaultBadgeShape
 import com.example.ui.theme.VaultMotion
 import com.example.ui.theme.emphasized
 
+/**
+ * Minimal home: one prominent "Security & Encryption" container, nothing else
+ * (plus a quiet About link). No bottom navigation, no category grid, no stats.
+ */
 @Composable
 fun HomeScreen(
     viewModel: VaultViewModel,
@@ -68,172 +65,108 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    val hardwareInfo by viewModel.hardwareSecurity.collectAsStateWithLifecycle()
-    val scrollState = rememberScrollState()
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(contentPadding),
-        contentAlignment = Alignment.TopCenter
-    ) {
+    // Press feedback: the card squishes and its corners tighten (expressive spatial spring).
+    val corner by animateDpAsState(if (pressed) 24.dp else 40.dp, VaultMotion.fastSpatialSpec(), label = "home-card-corner")
+    val scale by animateFloatAsState(if (pressed) 0.98f else 1f, VaultMotion.fastSpatialSpec(), label = "home-card-scale")
+
+    // Very large system fonts: stack the content instead of squeezing three columns.
+    val stacked = LocalDensity.current.fontScale > 1.3f
+
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val minHeight = (maxHeight - contentPadding.calculateTopPadding() - contentPadding.calculateBottomPadding())
+            .coerceAtLeast(0.dp)
+
+        // Scrolls only when it must (huge fonts / landscape); otherwise the card sits centered.
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .widthIn(max = 680.dp)
-                .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(28.dp)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(contentPadding)
+                .heightIn(min = minHeight),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Tasteful, Minimal Header
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .staggeredEntrance(0),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                InfoChip(
-                    text = "100% Offline • Keystore Hardware Ready",
-                    leading = Icons.Rounded.PublicOff,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(18.dp))
-                Text(
-                    text = "AD Sky Vault",
-                    style = MaterialTheme.typography.headlineMedium.emphasized(FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "On-device file encryption & authenticated envelopes",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // PRIMARY PROMINENT CONTAINER: "Security & Encryption"
-            // The undisputed central feature of the home screen.
-            val interactionSource = remember { MutableInteractionSource() }
-            val isPressed by interactionSource.collectIsPressedAsState()
-            val scale by animateFloatAsState(
-                targetValue = if (isPressed) 0.98f else 1.0f,
-                animationSpec = VaultMotion.fastSpatialSpec(),
-                label = "primary_container_press_scale"
-            )
-
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                    }
-                    .staggeredEntrance(1)
-                    .testTag("security_and_encryption_card")
-                    .testTag("hero_vault_card")
-                    .semantics {
-                        role = Role.Button
-                        contentDescription = "Security & Encryption. Protect files and manage your security tools."
-                    }
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null, // Surface provides ripple
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.navigateTo(VaultScreen.SECURITY_AND_ENCRYPTION)
-                        }
-                    ),
-                shape = RoundedCornerShape(32.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
-                ),
-                shadowElevation = 4.dp
-            ) {
-                Column(
-                    modifier = Modifier.padding(28.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+            Box(Modifier.testTag("hero_vault_card")) {
+                Surface(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.navigateTo(VaultScreen.SECURITY_AND_ENCRYPTION)
+                    },
+                    interactionSource = interaction,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer { scaleX = scale; scaleY = scale }
+                        .staggeredEntrance(0)
+                        .testTag("security_and_encryption_card"),
+                    shape = RoundedCornerShape(corner.coerceAtLeast(0.dp)),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shadowElevation = 2.dp
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Expressive Security Badge
+                    val badge: @Composable () -> Unit = {
                         ShapeBadge(
                             icon = Icons.Rounded.Shield,
                             polygon = VaultBadgeShape.Cookie12Sided,
-                            size = 64.dp,
-                            rotate = true,
-                            contentDescription = "Security Shield"
+                            size = 64.dp
                         )
-
-                        Spacer(Modifier.width(20.dp))
-
-                        // Exact title and subtitle
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Security & Encryption",
-                                style = MaterialTheme.typography.headlineSmall.emphasized(FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = "Protect files and manage your security tools.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.84f)
-                            )
-                        }
-
-                        Spacer(Modifier.width(16.dp))
-
-                        // Trailing Interaction Affordance
+                    }
+                    val arrow: @Composable () -> Unit = {
                         Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    shape = CircleShape
-                                ),
+                            Modifier.size(48.dp).background(MaterialTheme.colorScheme.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                Icons.AutoMirrored.Rounded.ArrowForward,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
                     }
+                    val texts: @Composable (Modifier) -> Unit = { m ->
+                        Column(m) {
+                            Text(
+                                "Security & Encryption",
+                                style = MaterialTheme.typography.headlineSmall.emphasized(FontWeight.Bold)
+                            )
+                            Spacer(Modifier.size(6.dp))
+                            Text(
+                                "Protect files and manage your security tools.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.84f)
+                            )
+                        }
+                    }
+
+                    if (stacked) {
+                        Column(Modifier.padding(28.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                badge(); arrow()
+                            }
+                            texts(Modifier.fillMaxWidth())
+                        }
+                    } else {
+                        Row(Modifier.padding(28.dp), verticalAlignment = Alignment.CenterVertically) {
+                            badge()
+                            Spacer(Modifier.width(20.dp))
+                            texts(Modifier.weight(1f))
+                            Spacer(Modifier.width(16.dp))
+                            arrow()
+                        }
+                    }
                 }
             }
 
-            Spacer(Modifier.weight(1f, fill = false))
-            Spacer(Modifier.height(24.dp))
-
-            // Understated, minimal footer link
             TextButton(
                 onClick = { viewModel.navigateTo(VaultScreen.ABOUT) },
-                modifier = Modifier
-                    .staggeredEntrance(2)
-                    .testTag("nav_about_button")
+                modifier = Modifier.padding(top = 24.dp).heightIn(min = 48.dp).staggeredEntrance(1).testTag("nav_about_button")
             ) {
-                Icon(
-                    Icons.Rounded.Info,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
+                Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    "About AD Sky Vault • Specifications & Security Model",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("About AD Sky Vault", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

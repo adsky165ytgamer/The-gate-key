@@ -2,7 +2,6 @@
 
 package com.example.ui.screens
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -73,10 +72,6 @@ fun SecurityAndEncryptionScreen(
     val selectedTab by viewModel.selectedSecurityTab.collectAsStateWithLifecycle()
     val layoutDirection = LocalLayoutDirection.current
 
-    BackHandler {
-        viewModel.navigateTo(VaultScreen.HOME)
-    }
-
     val selectedIndex = tabs.indexOfFirst { it.tab == selectedTab }.coerceAtLeast(0)
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -102,6 +97,7 @@ fun SecurityAndEncryptionScreen(
                 .fillMaxWidth()
                 .padding(
                     start = contentPadding.calculateStartPadding(layoutDirection),
+                    top = contentPadding.calculateTopPadding(),
                     end = contentPadding.calculateEndPadding(layoutDirection)
                 )
                 .testTag("security_tabs_row")

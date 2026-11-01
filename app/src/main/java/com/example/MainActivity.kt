@@ -101,7 +101,7 @@ private fun VaultScreen.title() = when (this) {
 }
 
 private fun VaultScreen.subtitle() = when (this) {
-    VaultScreen.HOME -> "Offline file encryption & recovery"
+    VaultScreen.HOME -> ""
     VaultScreen.SECURITY_AND_ENCRYPTION -> "Protect files and manage your security tools"
     VaultScreen.ABOUT -> "Specifications and security model"
     else -> "Protect files and manage your security tools"
@@ -154,13 +154,16 @@ private fun VaultApp(viewModel: VaultViewModel) {
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            currentScreen.subtitle(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        val subtitle = currentScreen.subtitle()
+                        if (subtitle.isNotEmpty()) {
+                            Text(
+                                subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -173,7 +176,7 @@ private fun VaultApp(viewModel: VaultViewModel) {
                         }
                     }
                 },
-                actions = { OfflineBadge(compact = fontScale > 1.3f) },
+                actions = { if (currentScreen != VaultScreen.HOME) OfflineBadge(compact = fontScale > 1.3f) },
                 colors = TopAppBarDefaults.largeTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
