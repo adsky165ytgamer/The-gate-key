@@ -39,3 +39,9 @@
 
 # Room / Moshi are handled by their generated code + consumer rules.
 -dontwarn kotlinx.coroutines.debug.**
+
+# Camera Tools
+-keep class org.opencv.** { *; }
+-dontwarn org.opencv.**
+-keep class com.google.zxing.** { *; }
+-dontwarn com.google.zxing.**

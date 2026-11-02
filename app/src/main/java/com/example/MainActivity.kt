@@ -47,6 +47,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,6 +69,7 @@ import com.example.ui.VaultScreen
 import com.example.ui.VaultViewModel
 import com.example.ui.components.InfoChip
 import com.example.ui.screens.AboutScreen
+import com.example.ui.screens.CameraToolsScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.SecurityAndEncryptionScreen
 import com.example.ui.theme.ADSkyVaultTheme
@@ -96,6 +98,7 @@ class MainActivity : ComponentActivity() {
 private fun VaultScreen.title() = when (this) {
     VaultScreen.HOME -> "AD Sky Vault"
     VaultScreen.SECURITY_AND_ENCRYPTION -> "Security & Encryption"
+    VaultScreen.CAMERA_TOOLS -> "Camera Tools"
     VaultScreen.ABOUT -> "About AD Sky Vault"
     else -> "Security & Encryption"
 }
@@ -103,6 +106,7 @@ private fun VaultScreen.title() = when (this) {
 private fun VaultScreen.subtitle() = when (this) {
     VaultScreen.HOME -> ""
     VaultScreen.SECURITY_AND_ENCRYPTION -> "Protect files and manage your security tools"
+    VaultScreen.CAMERA_TOOLS -> ""
     VaultScreen.ABOUT -> "Specifications and security model"
     else -> "Protect files and manage your security tools"
 }
@@ -146,7 +150,18 @@ private fun VaultApp(viewModel: VaultViewModel) {
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = safeInsets,
         topBar = {
-            LargeTopAppBar(
+            if (currentScreen == VaultScreen.CAMERA_TOOLS) {
+                TopAppBar(
+                    title = { Text(currentScreen.title(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = { viewModel.navigateTo(VaultScreen.HOME) },
+                            modifier = Modifier.testTag("top_bar_back_button")
+                        ) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back to home") }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                )
+            } else LargeTopAppBar(
                 title = {
                     Column {
                         Text(
@@ -176,7 +191,6 @@ private fun VaultApp(viewModel: VaultViewModel) {
                         }
                     }
                 },
-                actions = { if (currentScreen != VaultScreen.HOME) OfflineBadge(compact = fontScale > 1.3f) },
                 colors = TopAppBarDefaults.largeTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -228,35 +242,11 @@ private fun VaultApp(viewModel: VaultViewModel) {
                     when (screen) {
                         VaultScreen.HOME -> HomeScreen(viewModel, contentPadding)
                         VaultScreen.ABOUT -> AboutScreen(viewModel, contentPadding)
+                        VaultScreen.CAMERA_TOOLS -> CameraToolsScreen(contentPadding)
                         else -> SecurityAndEncryptionScreen(viewModel, contentPadding)
                     }
                 }
             }
         }
-    }
-}
-
-/** "Offline" status. Collapses to a dot-sized icon badge when the system font is very large. */
-@Composable
-private fun OfflineBadge(compact: Boolean) {
-    val ext = VaultTheme.colors
-    val description = "Offline. This app has no network access."
-    if (compact) {
-        Surface(
-            shape = CircleShape,
-            color = ext.successContainer,
-            contentColor = ext.onSuccessContainer,
-            modifier = Modifier.padding(end = 8.dp).semantics { contentDescription = description }
-        ) {
-            Icon(Icons.Rounded.PublicOff, contentDescription = null, modifier = Modifier.padding(8.dp).size(18.dp))
-        }
-    } else {
-        InfoChip(
-            text = "Offline",
-            leading = Icons.Rounded.PublicOff,
-            containerColor = ext.successContainer,
-            contentColor = ext.onSuccessContainer,
-            modifier = Modifier.padding(end = 8.dp).semantics { contentDescription = description }
-        )
     }
 }

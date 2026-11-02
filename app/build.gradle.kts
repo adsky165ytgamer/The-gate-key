@@ -19,6 +19,8 @@ android {
     versionCode = 3
     versionName = "3.0"
 
+    ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -88,10 +90,10 @@ dependencies {
   implementation(platform(libs.firebase.bom))
   // implementation(libs.accompanist.permissions)
   implementation(libs.androidx.activity.compose)
-  // implementation(libs.androidx.camera.camera2)
-  // implementation(libs.androidx.camera.core)
-  // implementation(libs.androidx.camera.lifecycle)
-  // implementation(libs.androidx.camera.view)
+  implementation(libs.androidx.camera.camera2)
+  implementation(libs.androidx.camera.core)
+  implementation(libs.androidx.camera.lifecycle)
+  implementation(libs.androidx.camera.view)
   implementation(libs.androidx.compose.material.icons.core)
   implementation(libs.androidx.compose.material.icons.extended)
   implementation(libs.androidx.compose.material3)
@@ -128,6 +130,9 @@ dependencies {
   // implementation(libs.play.services.location)
   // implementation(libs.retrofit)
   implementation(libs.tink.android)
+  implementation(libs.zxing.core)
+  implementation(libs.androidx.exifinterface)
+  implementation(project(":opencv"))
   implementation(libs.bouncycastle.prov)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)

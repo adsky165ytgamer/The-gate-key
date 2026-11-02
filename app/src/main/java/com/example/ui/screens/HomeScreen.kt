@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -27,7 +27,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -64,6 +67,82 @@ fun HomeScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
+    // Very large system fonts: cards stack their content instead of squeezing three columns.
+    val stacked = LocalDensity.current.fontScale > 1.3f
+
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val minHeight = (maxHeight - contentPadding.calculateTopPadding() - contentPadding.calculateBottomPadding())
+            .coerceAtLeast(0.dp)
+
+        // Scrolls only when it must (huge fonts / landscape); otherwise the cards sit centered.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(contentPadding)
+                .heightIn(min = minHeight),
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            HomeFeatureCard(
+                title = "Security & Encryption",
+                description = "Protect files and manage your security tools.",
+                icon = Icons.Rounded.Shield,
+                shape = VaultBadgeShape.Cookie12Sided,
+                container = MaterialTheme.colorScheme.primaryContainer,
+                onContainer = MaterialTheme.colorScheme.onPrimaryContainer,
+                accent = MaterialTheme.colorScheme.primary,
+                onAccent = MaterialTheme.colorScheme.onPrimary,
+                stacked = stacked,
+                index = 0,
+                outerTag = "hero_vault_card",
+                tag = "security_and_encryption_card",
+                onClick = { viewModel.navigateTo(VaultScreen.SECURITY_AND_ENCRYPTION) }
+            )
+            HomeFeatureCard(
+                title = "Camera Tools",
+                description = "Scan documents, read codes, magnify and inspect images.",
+                icon = Icons.Rounded.CameraAlt,
+                shape = VaultBadgeShape.Sunny,
+                container = MaterialTheme.colorScheme.tertiaryContainer,
+                onContainer = MaterialTheme.colorScheme.onTertiaryContainer,
+                accent = MaterialTheme.colorScheme.tertiary,
+                onAccent = MaterialTheme.colorScheme.onTertiary,
+                stacked = stacked,
+                index = 1,
+                outerTag = "camera_tools_card_outer",
+                tag = "camera_tools_card",
+                onClick = { viewModel.navigateTo(VaultScreen.CAMERA_TOOLS) }
+            )
+
+            TextButton(
+                onClick = { viewModel.navigateTo(VaultScreen.ABOUT) },
+                modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp).staggeredEntrance(2).testTag("nav_about_button")
+            ) {
+                Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("About AD Sky Vault", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeFeatureCard(
+    title: String,
+    description: String,
+    icon: ImageVector,
+    shape: VaultBadgeShape,
+    container: Color,
+    onContainer: Color,
+    accent: Color,
+    onAccent: Color,
+    stacked: Boolean,
+    index: Int,
+    outerTag: String,
+    tag: String,
+    onClick: () -> Unit
+) {
     val haptic = LocalHapticFeedback.current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -72,101 +151,53 @@ fun HomeScreen(
     val corner by animateDpAsState(if (pressed) 24.dp else 40.dp, VaultMotion.fastSpatialSpec(), label = "home-card-corner")
     val scale by animateFloatAsState(if (pressed) 0.98f else 1f, VaultMotion.fastSpatialSpec(), label = "home-card-scale")
 
-    // Very large system fonts: stack the content instead of squeezing three columns.
-    val stacked = LocalDensity.current.fontScale > 1.3f
-
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        val minHeight = (maxHeight - contentPadding.calculateTopPadding() - contentPadding.calculateBottomPadding())
-            .coerceAtLeast(0.dp)
-
-        // Scrolls only when it must (huge fonts / landscape); otherwise the card sits centered.
-        Column(
+    Box(Modifier.testTag(outerTag)) {
+        Surface(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            },
+            interactionSource = interaction,
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(contentPadding)
-                .heightIn(min = minHeight),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .staggeredEntrance(index)
+                .testTag(tag),
+            shape = RoundedCornerShape(corner.coerceAtLeast(0.dp)),
+            color = container,
+            contentColor = onContainer,
+            shadowElevation = 2.dp
         ) {
-            Box(Modifier.testTag("hero_vault_card")) {
-                Surface(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.navigateTo(VaultScreen.SECURITY_AND_ENCRYPTION)
-                    },
-                    interactionSource = interaction,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer { scaleX = scale; scaleY = scale }
-                        .staggeredEntrance(0)
-                        .testTag("security_and_encryption_card"),
-                    shape = RoundedCornerShape(corner.coerceAtLeast(0.dp)),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    shadowElevation = 2.dp
-                ) {
-                    val badge: @Composable () -> Unit = {
-                        ShapeBadge(
-                            icon = Icons.Rounded.Shield,
-                            polygon = VaultBadgeShape.Cookie12Sided,
-                            size = 64.dp
-                        )
-                    }
-                    val arrow: @Composable () -> Unit = {
-                        Box(
-                            Modifier.size(48.dp).background(MaterialTheme.colorScheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Rounded.ArrowForward,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-                    val texts: @Composable (Modifier) -> Unit = { m ->
-                        Column(m) {
-                            Text(
-                                "Security & Encryption",
-                                style = MaterialTheme.typography.headlineSmall.emphasized(FontWeight.Bold)
-                            )
-                            Spacer(Modifier.size(6.dp))
-                            Text(
-                                "Protect files and manage your security tools.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.84f)
-                            )
-                        }
-                    }
-
-                    if (stacked) {
-                        Column(Modifier.padding(28.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                badge(); arrow()
-                            }
-                            texts(Modifier.fillMaxWidth())
-                        }
-                    } else {
-                        Row(Modifier.padding(28.dp), verticalAlignment = Alignment.CenterVertically) {
-                            badge()
-                            Spacer(Modifier.width(20.dp))
-                            texts(Modifier.weight(1f))
-                            Spacer(Modifier.width(16.dp))
-                            arrow()
-                        }
-                    }
+            val badge: @Composable () -> Unit = {
+                ShapeBadge(icon = icon, polygon = shape, size = 64.dp, containerColor = accent, contentColor = onAccent)
+            }
+            val arrow: @Composable () -> Unit = {
+                Box(Modifier.size(48.dp).background(accent, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = onAccent, modifier = Modifier.size(24.dp))
                 }
             }
-
-            TextButton(
-                onClick = { viewModel.navigateTo(VaultScreen.ABOUT) },
-                modifier = Modifier.padding(top = 24.dp).heightIn(min = 48.dp).staggeredEntrance(1).testTag("nav_about_button")
-            ) {
-                Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("About AD Sky Vault", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val texts: @Composable (Modifier) -> Unit = { m ->
+                Column(m) {
+                    Text(title, style = MaterialTheme.typography.headlineSmall.emphasized(FontWeight.Bold))
+                    Spacer(Modifier.size(6.dp))
+                    Text(description, style = MaterialTheme.typography.bodyMedium, color = onContainer.copy(alpha = 0.84f))
+                }
+            }
+            if (stacked) {
+                Column(Modifier.padding(28.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        badge(); arrow()
+                    }
+                    texts(Modifier.fillMaxWidth())
+                }
+            } else {
+                Row(Modifier.padding(28.dp), verticalAlignment = Alignment.CenterVertically) {
+                    badge()
+                    Spacer(Modifier.width(20.dp))
+                    texts(Modifier.weight(1f))
+                    Spacer(Modifier.width(16.dp))
+                    arrow()
+                }
             }
         }
     }

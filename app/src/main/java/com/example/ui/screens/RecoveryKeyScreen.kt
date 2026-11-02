@@ -294,7 +294,7 @@ private fun RecoverySecretCard(
 @Composable
 private fun RecoveryGuidanceSection() {
     Column(Modifier.staggeredEntrance(1).testTag("recovery_guidance_card"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionHeader("Offline security principles")
+        SectionHeader("Recovery guidance")
         val items = listOf(
             Triple(Icons.Rounded.Warning, "Permanent loss", "Lose this phone and this secret and your files cannot be recovered by anyone. There are no servers, backdoors, or accounts."),
             Triple(Icons.Rounded.SwapHoriz, "Switching phones", "Install AD Sky Vault on the new device and use this secret while decrypting. It re-binds your files to the new Keystore."),

@@ -60,8 +60,6 @@ fun AboutScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
-    val ext = VaultTheme.colors
-
     BoxWithConstraints(modifier.fillMaxSize()) {
         val isWide = maxWidth >= 720.dp
 
@@ -74,14 +72,13 @@ fun AboutScreen(
                     .verticalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Left Column: Air gap manifesto + Vetted stack
+                // Left Column: Vetted stack
                 Column(
                     Modifier
                         .weight(1f)
                         .padding(bottom = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    AirgapCard(ext = ext)
                     CryptoStackSection()
                 }
 
@@ -103,7 +100,6 @@ fun AboutScreen(
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 item(key = "airgap") {
-                    AirgapCard(ext = ext)
                 }
 
                 item(key = "spec") {
@@ -114,39 +110,6 @@ fun AboutScreen(
                     CryptoStackSection()
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun AirgapCard(ext: com.example.ui.theme.VaultExtendedColors) {
-    Surface(
-        Modifier
-            .fillMaxWidth()
-            .staggeredEntrance(0)
-            .testTag("offline_manifesto_card"),
-        shape = RoundedCornerShape(32.dp),
-        color = ext.successContainer,
-        contentColor = ext.onSuccessContainer
-    ) {
-        Column(Modifier.padding(24.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ShapeBadge(
-                    Icons.Rounded.PublicOff,
-                    polygon = VaultBadgeShape.Cookie12Sided,
-                    size = 60.dp,
-                    rotate = true,
-                    containerColor = ext.success,
-                    contentColor = ext.onSuccess
-                )
-                Spacer(Modifier.width(16.dp))
-                Text("Zero-network air gap", style = MaterialTheme.typography.titleLarge.emphasized(), modifier = Modifier.weight(1f))
-            }
-            Text(
-                "No internet permission, no analytics, no cloud database. Every cryptographic operation runs on this device using Android Keystore and vetted primitives.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 14.dp)
-            )
         }
     }
 }

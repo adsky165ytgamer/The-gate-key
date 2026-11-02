@@ -30,6 +30,7 @@ import java.io.FileOutputStream
 enum class VaultScreen {
     HOME,
     SECURITY_AND_ENCRYPTION,
+    CAMERA_TOOLS,
     ENCRYPT,
     DECRYPT,
     BATCH,
