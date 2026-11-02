@@ -13,11 +13,11 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.example"
+    applicationId = "com.adsky.gatekey"
     minSdk = 24
     targetSdk = 36
-    versionCode = 3
-    versionName = "3.0"
+    versionCode = 4
+    versionName = "4.0"
 
     ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
 
