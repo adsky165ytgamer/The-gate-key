@@ -16,8 +16,8 @@ android {
     applicationId = "com.adsky.gatekey"
     minSdk = 24
     targetSdk = 36
-    versionCode = 4
-    versionName = "4.0"
+    versionCode = 5
+    versionName = "5.0"
 
     ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
 
@@ -127,7 +127,8 @@ dependencies {
   // implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   // implementation(libs.okhttp)
-  // implementation(libs.play.services.location)
+  implementation(libs.play.services.location)
+  implementation(libs.maplibre.android)
   // implementation(libs.retrofit)
   implementation(libs.tink.android)
   implementation(libs.zxing.core)

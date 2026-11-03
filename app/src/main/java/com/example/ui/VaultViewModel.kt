@@ -31,6 +31,7 @@ enum class VaultScreen {
     HOME,
     SECURITY_AND_ENCRYPTION,
     CAMERA_TOOLS,
+    LOCATION_KIT,
     ENCRYPT,
     DECRYPT,
     BATCH,

@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -115,9 +116,25 @@ fun HomeScreen(
                 onClick = { viewModel.navigateTo(VaultScreen.CAMERA_TOOLS) }
             )
 
+            HomeFeatureCard(
+                title = "Location Kit",
+                description = "Explore the map, check your position, find north and measure distances.",
+                icon = Icons.Rounded.Explore,
+                shape = VaultBadgeShape.Clover4Leaf,
+                container = MaterialTheme.colorScheme.secondaryContainer,
+                onContainer = MaterialTheme.colorScheme.onSecondaryContainer,
+                accent = MaterialTheme.colorScheme.secondary,
+                onAccent = MaterialTheme.colorScheme.onSecondary,
+                stacked = stacked,
+                index = 2,
+                outerTag = "location_kit_card_outer",
+                tag = "location_kit_card",
+                onClick = { viewModel.navigateTo(VaultScreen.LOCATION_KIT) }
+            )
+
             TextButton(
                 onClick = { viewModel.navigateTo(VaultScreen.ABOUT) },
-                modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp).staggeredEntrance(2).testTag("nav_about_button")
+                modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp).staggeredEntrance(3).testTag("nav_about_button")
             ) {
                 Icon(Icons.Rounded.Info, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))

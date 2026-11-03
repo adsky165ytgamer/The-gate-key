@@ -70,6 +70,7 @@ import com.example.ui.VaultViewModel
 import com.example.ui.components.InfoChip
 import com.example.ui.screens.AboutScreen
 import com.example.ui.screens.CameraToolsScreen
+import com.example.location.ui.LocationKitScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.SecurityAndEncryptionScreen
 import com.example.ui.theme.ADSkyVaultTheme
@@ -99,6 +100,7 @@ private fun VaultScreen.title() = when (this) {
     VaultScreen.HOME -> "AD Sky Vault"
     VaultScreen.SECURITY_AND_ENCRYPTION -> "Security & Encryption"
     VaultScreen.CAMERA_TOOLS -> "Camera Tools"
+    VaultScreen.LOCATION_KIT -> "Location Kit"
     VaultScreen.ABOUT -> "About AD Sky Vault"
     else -> "Security & Encryption"
 }
@@ -107,6 +109,7 @@ private fun VaultScreen.subtitle() = when (this) {
     VaultScreen.HOME -> ""
     VaultScreen.SECURITY_AND_ENCRYPTION -> "Protect files and manage your security tools"
     VaultScreen.CAMERA_TOOLS -> ""
+    VaultScreen.LOCATION_KIT -> ""
     VaultScreen.ABOUT -> "Specifications and security model"
     else -> "Protect files and manage your security tools"
 }
@@ -150,7 +153,7 @@ private fun VaultApp(viewModel: VaultViewModel) {
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = safeInsets,
         topBar = {
-            if (currentScreen == VaultScreen.CAMERA_TOOLS) {
+            if (currentScreen == VaultScreen.CAMERA_TOOLS || currentScreen == VaultScreen.LOCATION_KIT) {
                 TopAppBar(
                     title = { Text(currentScreen.title(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = {
@@ -243,6 +246,7 @@ private fun VaultApp(viewModel: VaultViewModel) {
                         VaultScreen.HOME -> HomeScreen(viewModel, contentPadding)
                         VaultScreen.ABOUT -> AboutScreen(viewModel, contentPadding)
                         VaultScreen.CAMERA_TOOLS -> CameraToolsScreen(contentPadding)
+                        VaultScreen.LOCATION_KIT -> LocationKitScreen(contentPadding)
                         else -> SecurityAndEncryptionScreen(viewModel, contentPadding)
                     }
                 }
