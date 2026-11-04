@@ -16,8 +16,8 @@ android {
     applicationId = "com.adsky.gatekey"
     minSdk = 24
     targetSdk = 36
-    versionCode = 5
-    versionName = "5.0"
+    versionCode = 6
+    versionName = "5.1"
 
     ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
 

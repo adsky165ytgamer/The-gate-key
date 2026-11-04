@@ -37,10 +37,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.PublicOff
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -51,6 +52,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,10 +72,11 @@ import com.example.ui.VaultScreen
 import com.example.ui.VaultViewModel
 import com.example.ui.components.InfoChip
 import com.example.ui.screens.AboutScreen
-import com.example.ui.screens.CameraToolsScreen
-import com.example.location.ui.LocationKitScreen
 import com.example.ui.screens.HomeScreen
-import com.example.ui.screens.SecurityAndEncryptionScreen
+import com.example.ui.screens.ToolHubScreen
+import com.example.ui.components.CategoryHelpSheet
+import com.example.ui.components.ToolHelpSheet
+import com.example.ui.registry.ToolCategory
 import com.example.ui.theme.ADSkyVaultTheme
 import com.example.ui.theme.VaultMotion
 import com.example.ui.theme.VaultTheme
@@ -98,20 +102,14 @@ class MainActivity : ComponentActivity() {
 
 private fun VaultScreen.title() = when (this) {
     VaultScreen.HOME -> "AD Sky Vault"
-    VaultScreen.SECURITY_AND_ENCRYPTION -> "Security & Encryption"
-    VaultScreen.CAMERA_TOOLS -> "Camera Tools"
-    VaultScreen.LOCATION_KIT -> "Location Kit"
     VaultScreen.ABOUT -> "About AD Sky Vault"
-    else -> "Security & Encryption"
+    else -> ToolCategory.forScreen(this)?.title ?: "AD Sky Vault"
 }
 
 private fun VaultScreen.subtitle() = when (this) {
     VaultScreen.HOME -> ""
-    VaultScreen.SECURITY_AND_ENCRYPTION -> "Protect files and manage your security tools"
-    VaultScreen.CAMERA_TOOLS -> ""
-    VaultScreen.LOCATION_KIT -> ""
     VaultScreen.ABOUT -> "Specifications and security model"
-    else -> "Protect files and manage your security tools"
+    else -> ToolCategory.forScreen(this)?.tagline ?: ""
 }
 
 private const val MAX_CONTENT_WIDTH_DP = 880
@@ -121,14 +119,23 @@ private const val MAX_CONTENT_WIDTH_DP = 880
 @Composable
 private fun VaultApp(viewModel: VaultViewModel) {
     val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
+    val activeTool by viewModel.activeTool.collectAsStateWithLifecycle()
+    val category = ToolCategory.forScreen(currentScreen)
+    val openTool = activeTool?.takeIf { it.category == category }
+    var helpOpen by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val layoutDirection = LocalLayoutDirection.current
     val fontScale = LocalDensity.current.fontScale
 
     // Every screen starts with a fully expanded title.
-    LaunchedEffect(currentScreen) {
+    LaunchedEffect(currentScreen, openTool) {
         scrollBehavior.state.heightOffset = 0f
         scrollBehavior.state.contentOffset = 0f
+    }
+
+    // Back goes one level up: open tool -> its grid -> Home.
+    val goBack: () -> Unit = {
+        if (openTool != null) viewModel.closeTool() else viewModel.navigateTo(VaultScreen.HOME)
     }
 
     // Predictive back: content shrinks under the finger, then returns home.
@@ -136,7 +143,7 @@ private fun VaultApp(viewModel: VaultViewModel) {
     PredictiveBackHandler(enabled = currentScreen != VaultScreen.HOME) { progress ->
         try {
             progress.collect { backScale.snapTo(1f - 0.1f * it.progress) }
-            viewModel.navigateTo(VaultScreen.HOME)
+            goBack()
             backScale.animateTo(1f, VaultMotion.defaultSpatialSpec())
         } catch (e: CancellationException) {
             withContext(NonCancellable) { backScale.animateTo(1f, VaultMotion.fastSpatialSpec()) }
@@ -153,53 +160,65 @@ private fun VaultApp(viewModel: VaultViewModel) {
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = safeInsets,
         topBar = {
-            if (currentScreen == VaultScreen.CAMERA_TOOLS || currentScreen == VaultScreen.LOCATION_KIT) {
-                TopAppBar(
-                    title = { Text(currentScreen.title(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = { viewModel.navigateTo(VaultScreen.HOME) },
-                            modifier = Modifier.testTag("top_bar_back_button")
-                        ) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back to home") }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                )
-            } else LargeTopAppBar(
-                title = {
-                    Column {
+            val backButton: @Composable () -> Unit = {
+                if (currentScreen != VaultScreen.HOME) {
+                    IconButton(
+                        onClick = goBack,
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        modifier = Modifier.testTag("top_bar_back_button")
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = if (openTool != null) "Back to ${category?.title}" else "Back to home"
+                        )
+                    }
+                }
+            }
+            val helpButton: @Composable () -> Unit = {
+                if (category != null) {
+                    IconButton(
+                        onClick = { helpOpen = true },
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        modifier = Modifier.testTag("top_bar_help_button")
+                    ) { Icon(Icons.Rounded.Info, contentDescription = "What is this?") }
+                }
+            }
+            val title = openTool?.title ?: currentScreen.title()
+            val subtitle = if (openTool != null) openTool.category.title else currentScreen.subtitle()
+            val titleContent: @Composable () -> Unit = {
+                Column {
+                    Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (subtitle.isNotEmpty()) {
                         Text(
-                            currentScreen.title(),
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        val subtitle = currentScreen.subtitle()
-                        if (subtitle.isNotEmpty()) {
-                            Text(
-                                subtitle,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
                     }
-                },
-                navigationIcon = {
-                    if (currentScreen != VaultScreen.HOME) {
-                        IconButton(
-                            onClick = { viewModel.navigateTo(VaultScreen.HOME) },
-                            modifier = Modifier.testTag("top_bar_back_button")
-                        ) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back to home")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
-                ),
-                scrollBehavior = scrollBehavior
-            )
+                }
+            }
+            if (openTool != null) {
+                // Inside a tool the bar stays compact so cameras and maps get the room.
+                TopAppBar(
+                    title = titleContent,
+                    navigationIcon = backButton,
+                    actions = { helpButton() },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                )
+            } else {
+                LargeTopAppBar(
+                    title = titleContent,
+                    navigationIcon = backButton,
+                    actions = { helpButton() },
+                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                    ),
+                    scrollBehavior = scrollBehavior
+                )
+            }
         }
     ) { innerPadding ->
         BoxWithConstraints(
@@ -245,12 +264,23 @@ private fun VaultApp(viewModel: VaultViewModel) {
                     when (screen) {
                         VaultScreen.HOME -> HomeScreen(viewModel, contentPadding)
                         VaultScreen.ABOUT -> AboutScreen(viewModel, contentPadding)
-                        VaultScreen.CAMERA_TOOLS -> CameraToolsScreen(contentPadding)
-                        VaultScreen.LOCATION_KIT -> LocationKitScreen(contentPadding)
-                        else -> SecurityAndEncryptionScreen(viewModel, contentPadding)
+                        else -> ToolHubScreen(
+                            category = ToolCategory.forScreen(screen) ?: ToolCategory.SECURITY,
+                            viewModel = viewModel,
+                            contentPadding = contentPadding
+                        )
                     }
                 }
             }
+        }
+    }
+
+    if (helpOpen) {
+        val onDismiss = { helpOpen = false }
+        if (openTool != null) {
+            ToolHelpSheet(tool = openTool, onDismiss = onDismiss)
+        } else if (category != null) {
+            CategoryHelpSheet(category = category, onDismiss = onDismiss, onOpenTool = viewModel::openTool)
         }
     }
 }

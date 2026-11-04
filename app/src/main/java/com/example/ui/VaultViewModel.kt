@@ -14,6 +14,7 @@ import com.example.crypto.RecoveryKeyManager
 import com.example.crypto.SignatureMode
 import com.example.crypto.SkyVaultEngine
 import com.example.data.AppDatabase
+import com.example.ui.registry.ToolId
 import com.example.data.AuditLogEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -38,15 +39,6 @@ enum class VaultScreen {
     RECOVERY_KEY,
     DEVICE_SECURITY,
     ABOUT
-}
-
-enum class SecurityTab(val title: String) {
-    ENCRYPT("Encrypt"),
-    DECRYPT("Decrypt"),
-    BATCH("Batch"),
-    RECOVERY("Recovery"),
-    MIGRATION("Migration"),
-    AUDIT("Audit & Device")
 }
 
 enum class DecryptAuthMode {
@@ -161,12 +153,22 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     private val _batchCompletedCount = MutableStateFlow(0)
     val batchCompletedCount: StateFlow<Int> = _batchCompletedCount.asStateFlow()
 
-    // --- SECURITY & ENCRYPTION TAB STATE ---
-    private val _selectedSecurityTab = MutableStateFlow(SecurityTab.ENCRYPT)
-    val selectedSecurityTab: StateFlow<SecurityTab> = _selectedSecurityTab.asStateFlow()
+    // --- TOOL HUBS ---
+    // The tool currently open inside a type's hub, or null while the 2-column grid is showing.
+    private val _activeTool = MutableStateFlow<ToolId?>(null)
+    val activeTool: StateFlow<ToolId?> = _activeTool.asStateFlow()
 
-    fun setSelectedSecurityTab(tab: SecurityTab) {
-        _selectedSecurityTab.value = tab
+    /** Opens [tool] inside its own type (switching to that type's screen if needed). */
+    fun openTool(tool: ToolId) {
+        _activeTool.value = tool
+        _currentScreen.value = tool.category.screen
+        clearMessages()
+    }
+
+    /** Back from an open tool to its grid. */
+    fun closeTool() {
+        _activeTool.value = null
+        clearMessages()
     }
 
     // --- CONTAINER MIGRATION STATE ---
@@ -208,33 +210,23 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun navigateTo(screen: VaultScreen) {
-        when (screen) {
-            VaultScreen.ENCRYPT -> {
-                _selectedSecurityTab.value = SecurityTab.ENCRYPT
-                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
-            }
-            VaultScreen.DECRYPT -> {
-                _selectedSecurityTab.value = SecurityTab.DECRYPT
-                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
-            }
-            VaultScreen.BATCH -> {
-                _selectedSecurityTab.value = SecurityTab.BATCH
-                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
-            }
-            VaultScreen.RECOVERY_KEY -> {
-                _selectedSecurityTab.value = SecurityTab.RECOVERY
-                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
-            }
-            VaultScreen.DEVICE_SECURITY -> {
-                _selectedSecurityTab.value = SecurityTab.AUDIT
-                _currentScreen.value = VaultScreen.SECURITY_AND_ENCRYPTION
-            }
-            else -> {
-                _currentScreen.value = screen
-            }
+        // The old per-tool screens are kept as deep links into the matching tool.
+        val deepLink = when (screen) {
+            VaultScreen.ENCRYPT -> ToolId.ENCRYPT
+            VaultScreen.DECRYPT -> ToolId.DECRYPT
+            VaultScreen.BATCH -> ToolId.BATCH
+            VaultScreen.RECOVERY_KEY -> ToolId.RECOVERY
+            VaultScreen.DEVICE_SECURITY -> ToolId.AUDIT
+            else -> null
         }
-        _errorMessage.value = null
-        _operationSuccessMessage.value = null
+        if (deepLink != null) {
+            openTool(deepLink)
+            return
+        }
+        // Entering any other screen shows its grid / page, never a tool left open earlier.
+        _activeTool.value = null
+        _currentScreen.value = screen
+        clearMessages()
     }
 
     fun refreshHardwareSecurity() {
