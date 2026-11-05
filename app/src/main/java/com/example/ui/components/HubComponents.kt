@@ -277,11 +277,11 @@ fun ToolGrid(
     staggered: Boolean,
     onOpen: (ToolId) -> Unit,
     onHelp: (ToolId) -> Unit,
+    tools: List<ToolId> = category.tools,
     modifier: Modifier = Modifier
 ) {
     val columns = if (LocalDensity.current.fontScale > 1.4f) 1 else 2
     val focus = remember { MenuFocus() }
-    val tools = category.tools
 
     Column(
         modifier
@@ -409,7 +409,12 @@ fun ToolHelpSheet(tool: ToolId, onDismiss: () -> Unit, onOpen: ((ToolId) -> Unit
 
 /** "What is this?" for a whole type, with its tools listed as shortcuts. */
 @Composable
-fun CategoryHelpSheet(category: ToolCategory, onDismiss: () -> Unit, onOpenTool: (ToolId) -> Unit) {
+fun CategoryHelpSheet(
+    category: ToolCategory,
+    onDismiss: () -> Unit,
+    onOpenTool: (ToolId) -> Unit,
+    tools: List<ToolId> = category.tools
+) {
     HelpSheet(
         title = category.title,
         about = category.about,
@@ -422,7 +427,7 @@ fun CategoryHelpSheet(category: ToolCategory, onDismiss: () -> Unit, onOpenTool:
     ) {
         val (accent, onAccent) = category.tone.accent()
         Column(Modifier.clip(RoundedCornerShape(24.dp)), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            category.tools.forEach { tool ->
+            tools.forEach { tool ->
                 Row(
                     Modifier
                         .fillMaxWidth()

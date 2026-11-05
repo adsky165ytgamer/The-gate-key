@@ -14,6 +14,7 @@ import com.example.crypto.RecoveryKeyManager
 import com.example.crypto.SignatureMode
 import com.example.crypto.SkyVaultEngine
 import com.example.data.AppDatabase
+import com.example.remote.RemoteControlManager
 import com.example.ui.registry.ToolId
 import com.example.data.AuditLogEntry
 import kotlinx.coroutines.Dispatchers
@@ -50,6 +51,7 @@ enum class DecryptAuthMode {
 class VaultViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = AppDatabase.getInstance(application)
+    private val remoteControl = RemoteControlManager.get(application)
     val auditLogs: StateFlow<List<AuditLogEntry>> = db.auditLogDao().getAllLogs()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -160,6 +162,10 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Opens [tool] inside its own type (switching to that type's screen if needed). */
     fun openTool(tool: ToolId) {
+        if (!remoteControl.isAvailable(tool)) {
+            _errorMessage.value = "${tool.title} is currently unavailable."
+            return
+        }
         _activeTool.value = tool
         _currentScreen.value = tool.category.screen
         clearMessages()
@@ -206,6 +212,7 @@ class VaultViewModel(application: Application) : AndroidViewModel(application) {
     val migrationResultFile: StateFlow<File?> = _migrationResultFile.asStateFlow()
 
     init {
+        remoteControl.start()
         refreshHardwareSecurity()
     }
 

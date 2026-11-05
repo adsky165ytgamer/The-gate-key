@@ -47,9 +47,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.remote.RemoteControlManager
 import com.example.ui.VaultScreen
 import com.example.ui.VaultViewModel
 import com.example.ui.components.ShapeBadge
@@ -57,6 +60,7 @@ import com.example.ui.components.staggeredEntrance
 import com.example.ui.theme.VaultBadgeShape
 import com.example.ui.theme.VaultMotion
 import com.example.ui.theme.emphasized
+import com.example.ui.registry.ToolCategory
 
 /**
  * Minimal home: one prominent "Security & Encryption" container, nothing else
@@ -68,6 +72,8 @@ fun HomeScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
+    val remoteControl = RemoteControlManager.get(LocalContext.current)
+    val remoteConfig by remoteControl.config.collectAsStateWithLifecycle()
     // Very large system fonts: cards stack their content instead of squeezing three columns.
     val stacked = LocalDensity.current.fontScale > 1.3f
 
@@ -85,7 +91,7 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            HomeFeatureCard(
+            if (remoteControl.isVisible(ToolCategory.SECURITY)) HomeFeatureCard(
                 title = "Security & Encryption",
                 description = "Protect files and manage your security tools.",
                 icon = Icons.Rounded.Shield,
@@ -98,9 +104,10 @@ fun HomeScreen(
                 index = 0,
                 outerTag = "hero_vault_card",
                 tag = "security_and_encryption_card",
+                enabled = remoteControl.isAvailable(ToolCategory.SECURITY),
                 onClick = { viewModel.navigateTo(VaultScreen.SECURITY_AND_ENCRYPTION) }
             )
-            HomeFeatureCard(
+            if (remoteControl.isVisible(ToolCategory.CAMERA)) HomeFeatureCard(
                 title = "Camera Tools",
                 description = "Scan documents, read codes, magnify and inspect images.",
                 icon = Icons.Rounded.CameraAlt,
@@ -113,10 +120,11 @@ fun HomeScreen(
                 index = 1,
                 outerTag = "camera_tools_card_outer",
                 tag = "camera_tools_card",
+                enabled = remoteControl.isAvailable(ToolCategory.CAMERA),
                 onClick = { viewModel.navigateTo(VaultScreen.CAMERA_TOOLS) }
             )
 
-            HomeFeatureCard(
+            if (remoteControl.isVisible(ToolCategory.LOCATION)) HomeFeatureCard(
                 title = "Location Kit",
                 description = "Explore the map, check your position, find north and measure distances.",
                 icon = Icons.Rounded.Explore,
@@ -129,6 +137,7 @@ fun HomeScreen(
                 index = 2,
                 outerTag = "location_kit_card_outer",
                 tag = "location_kit_card",
+                enabled = remoteControl.isAvailable(ToolCategory.LOCATION),
                 onClick = { viewModel.navigateTo(VaultScreen.LOCATION_KIT) }
             )
 
@@ -158,6 +167,7 @@ private fun HomeFeatureCard(
     index: Int,
     outerTag: String,
     tag: String,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
@@ -174,10 +184,11 @@ private fun HomeFeatureCard(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             },
+            enabled = enabled,
             interactionSource = interaction,
             modifier = Modifier
                 .fillMaxWidth()
-                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .graphicsLayer { scaleX = scale; scaleY = scale; alpha = if (enabled) 1f else 0.58f }
                 .staggeredEntrance(index)
                 .testTag(tag),
             shape = RoundedCornerShape(corner.coerceAtLeast(0.dp)),

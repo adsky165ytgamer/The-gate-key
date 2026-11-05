@@ -68,6 +68,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.remote.RemoteControlManager
 import com.example.ui.VaultScreen
 import com.example.ui.VaultViewModel
 import com.example.ui.components.InfoChip
@@ -90,6 +91,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        RemoteControlManager.get(this).start()
         setContent {
             ADSkyVaultTheme {
                 VaultApp(viewModel)
@@ -118,9 +120,12 @@ private const val MAX_CONTENT_WIDTH_DP = 880
 
 @Composable
 private fun VaultApp(viewModel: VaultViewModel) {
+    val remoteControl = RemoteControlManager.get(androidx.compose.ui.platform.LocalContext.current)
+    val remoteConfig by remoteControl.config.collectAsStateWithLifecycle()
     val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
     val activeTool by viewModel.activeTool.collectAsStateWithLifecycle()
     val category = ToolCategory.forScreen(currentScreen)
+    val visibleTools = category?.let { remoteControl.visibleTools(it) } ?: emptyList()
     val openTool = activeTool?.takeIf { it.category == category }
     var helpOpen by remember { mutableStateOf(false) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -280,7 +285,12 @@ private fun VaultApp(viewModel: VaultViewModel) {
         if (openTool != null) {
             ToolHelpSheet(tool = openTool, onDismiss = onDismiss)
         } else if (category != null) {
-            CategoryHelpSheet(category = category, onDismiss = onDismiss, onOpenTool = viewModel::openTool)
+            CategoryHelpSheet(
+                category = category,
+                onDismiss = onDismiss,
+                onOpenTool = viewModel::openTool,
+                tools = visibleTools
+            )
         }
     }
 }

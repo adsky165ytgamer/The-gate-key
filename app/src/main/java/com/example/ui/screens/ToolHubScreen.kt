@@ -31,6 +31,7 @@ import com.example.location.ui.DistanceTab
 import com.example.location.ui.GpsTab
 import com.example.location.ui.LocationKitViewModel
 import com.example.location.ui.MapTab
+import com.example.remote.RemoteControlManager
 import com.example.ui.VaultViewModel
 import com.example.ui.components.ToolGrid
 import com.example.ui.components.ToolHelpSheet
@@ -52,8 +53,11 @@ fun ToolHubScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
+    val remoteControl = RemoteControlManager.get(androidx.compose.ui.platform.LocalContext.current)
+    val remoteConfig by remoteControl.config.collectAsStateWithLifecycle()
     val activeTool by viewModel.activeTool.collectAsStateWithLifecycle()
-    val tool = activeTool?.takeIf { it.category == category }
+    val visibleTools = remoteControl.visibleTools(category)
+    val tool = activeTool?.takeIf { it.category == category && remoteControl.isAvailable(it) }
     var helpTool by remember { mutableStateOf<ToolId?>(null) }
 
     // The tiles rise in once, the first time this type is opened; coming back from a tool only zooms.
@@ -88,7 +92,8 @@ fun ToolHubScreen(
                 contentPadding = contentPadding,
                 staggered = !gridSeen,
                 onOpen = viewModel::openTool,
-                onHelp = { helpTool = it }
+                onHelp = { helpTool = it },
+                tools = visibleTools
             )
         } else {
             ToolContent(target, viewModel, toolPadding)
